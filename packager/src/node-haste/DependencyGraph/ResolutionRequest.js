@@ -24,6 +24,8 @@ const getAssetDataFromName = require('../lib/getAssetDataFromName');
 import type {HasteFS} from '../types';
 import type DependencyGraphHelpers from './DependencyGraphHelpers';
 import type ResolutionResponse from './ResolutionResponse';
+import type {Options as TransformWorkerOptions} from '../../JSTransformer/worker/worker';
+import type {ReadResult, CachedReadResult} from '../Module';
 
 type DirExistsFn = (filePath: string) => boolean;
 
@@ -31,8 +33,8 @@ type DirExistsFn = (filePath: string) => boolean;
  * `jest-haste-map`'s interface for ModuleMap.
  */
 export type ModuleMap = {
-  getModule(name: string, platform: string, supportsNativePlatform: boolean): ?string,
-  getPackage(name: string, platform: string, supportsNativePlatform: boolean): ?string,
+  getModule(name: string, platform: ?string, supportsNativePlatform: boolean): ?string,
+  getPackage(name: string, platform: ?string, supportsNativePlatform: boolean): ?string,
 };
 
 type Packageish = {
@@ -45,6 +47,8 @@ type Moduleish = {
   +path: string,
   getPackage(): ?Packageish,
   hash(): string,
+  readCached(transformOptions: TransformWorkerOptions): CachedReadResult,
+  readFresh(transformOptions: TransformWorkerOptions): Promise<ReadResult>,
 };
 
 type ModuleishCache<TModule, TPackage> = {
@@ -55,19 +59,19 @@ type ModuleishCache<TModule, TPackage> = {
 
 type MatchFilesByDirAndPattern = (dirName: string, pattern: RegExp) => Array<string>;
 
-type Options<TModule, TPackage> = {
-  dirExists: DirExistsFn,
-  entryPath: string,
-  extraNodeModules: ?Object,
-  hasteFS: HasteFS,
-  helpers: DependencyGraphHelpers,
-  matchFiles: MatchFilesByDirAndPattern,
-  moduleCache: ModuleishCache<TModule, TPackage>,
-  moduleMap: ModuleMap,
-  platform: string,
-  platforms: Set<string>,
-  preferNativePlatform: boolean,
-};
+type Options<TModule, TPackage> = {|
+  +dirExists: DirExistsFn,
+  +entryPath: string,
+  +extraNodeModules: ?Object,
+  +hasteFS: HasteFS,
+  +helpers: DependencyGraphHelpers,
+  +matchFiles: MatchFilesByDirAndPattern,
+  +moduleCache: ModuleishCache<TModule, TPackage>,
+  +moduleMap: ModuleMap,
+  +platform: ?string,
+  +platforms: Set<string>,
+  +preferNativePlatform: boolean,
+|};
 
 /**
  * It may not be a great pattern to leverage exception just for "trying" things
@@ -86,44 +90,13 @@ function tryResolveSync<T>(action: () => T, secondaryAction: () => T): T {
 }
 
 class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
-  _dirExists: DirExistsFn;
-  _entryPath: string;
-  _extraNodeModules: ?Object;
-  _hasteFS: HasteFS;
-  _helpers: DependencyGraphHelpers;
+
   _immediateResolutionCache: {[key: string]: TModule};
-  _matchFiles: MatchFilesByDirAndPattern;
-  _moduleCache: ModuleishCache<TModule, TPackage>;
-  _moduleMap: ModuleMap;
-  _platform: string;
-  _platforms: Set<string>;
-  _preferNativePlatform: boolean;
+  _options: Options<TModule, TPackage>;
   static emptyModule: string;
 
-  constructor({
-    dirExists,
-    entryPath,
-    extraNodeModules,
-    hasteFS,
-    helpers,
-    matchFiles,
-    moduleCache,
-    moduleMap,
-    platform,
-    platforms,
-    preferNativePlatform,
-  }: Options<TModule, TPackage>) {
-    this._dirExists = dirExists;
-    this._entryPath = entryPath;
-    this._extraNodeModules = extraNodeModules;
-    this._hasteFS = hasteFS;
-    this._helpers = helpers;
-    this._matchFiles = matchFiles;
-    this._moduleCache = moduleCache;
-    this._moduleMap = moduleMap;
-    this._platform = platform;
-    this._platforms = platforms;
-    this._preferNativePlatform = preferNativePlatform;
+  constructor(options: Options<TModule, TPackage>) {
+    this._options = options;
     this._resetResolutionCache();
   }
 
@@ -149,7 +122,7 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
       return result;
     };
 
-    if (!this._helpers.isNodeModulesDir(fromModule.path)
+    if (!this._options.helpers.isNodeModulesDir(fromModule.path)
         && !(isRelativeImport(toModuleName) || isAbsolutePath(toModuleName))) {
       const result = tryResolveSync(
         () => this._resolveHasteDependency(fromModule, toModuleName),
@@ -163,35 +136,48 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
 
   resolveModuleDependencies(
     module: TModule,
-    dependencyNames: Array<string>,
-  ): [Array<string>, Array<TModule>] {
+    dependencyNames: $ReadOnlyArray<string>,
+  ): [$ReadOnlyArray<string>, $ReadOnlyArray<TModule>] {
     const dependencies = dependencyNames.map(name => this.resolveDependency(module, name));
     return [dependencyNames, dependencies];
   }
 
-  getOrderedDependencies({
+  getOrderedDependencies<T>({
     response,
     transformOptions,
     onProgress,
     recursive = true,
   }: {
-    response: ResolutionResponse<TModule>,
-    transformOptions: Object,
+    response: ResolutionResponse<TModule, T>,
+    transformOptions: TransformWorkerOptions,
     onProgress?: ?(finishedModules: number, totalModules: number) => mixed,
     recursive: boolean,
   }) {
-    const entry = this._moduleCache.getModule(this._entryPath);
+    const entry = this._options.moduleCache.getModule(this._options.entryPath);
 
     response.pushDependency(entry);
     let totalModules = 1;
     let finishedModules = 0;
 
-    const resolveDependencies = module => Promise.resolve().then(() => {
-      const result = module.readCached(transformOptions);
-      if (result != null) {
-        return this.resolveModuleDependencies(module, result.dependencies);
+    let preprocessedModuleCount = 1;
+    if (recursive) {
+      this._preprocessPotentialDependencies(transformOptions, entry, count => {
+        if (count + 1 <= preprocessedModuleCount) {
+          return;
+        }
+        preprocessedModuleCount = count + 1;
+        if (onProgress != null) {
+          onProgress(finishedModules, preprocessedModuleCount);
+        }
+      });
+    }
+
+    const resolveDependencies = (module: TModule) => Promise.resolve().then(() => {
+      const cached = module.readCached(transformOptions);
+      if (cached.result != null) {
+        return this.resolveModuleDependencies(module, cached.result.dependencies);
       }
-      return module.read(transformOptions)
+      return module.readFresh(transformOptions)
         .then(({dependencies}) => this.resolveModuleDependencies(module, dependencies));
     });
 
@@ -221,7 +207,7 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
       if (onProgress) {
         finishedModules += 1;
         totalModules += newDependencies.length;
-        onProgress(finishedModules, totalModules);
+        onProgress(finishedModules, Math.max(totalModules, preprocessedModuleCount));
       }
 
       if (recursive) {
@@ -273,6 +259,71 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
     });
   }
 
+  /**
+   * This synchronously look at all the specified modules and recursively kicks off global cache
+   * fetching or transforming (via `readFresh`). This is a hack that workaround the current
+   * structure, because we could do better. First off, the algorithm that resolves dependencies
+   * recursively should be synchronous itself until it cannot progress anymore (and needs to
+   * call `readFresh`), so that this algo would be integrated into it.
+   */
+  _preprocessPotentialDependencies(
+    transformOptions: TransformWorkerOptions,
+    module: TModule,
+    onProgress: (moduleCount: number) => mixed,
+  ): void {
+    const visitedModulePaths = new Set();
+    const pendingBatches = [this.preprocessModule(transformOptions, module, visitedModulePaths)];
+    onProgress(visitedModulePaths.size);
+    while (pendingBatches.length > 0) {
+      const dependencyModules = pendingBatches.pop();
+      while (dependencyModules.length > 0) {
+        const dependencyModule = dependencyModules.pop();
+        const deps = this.preprocessModule(transformOptions, dependencyModule, visitedModulePaths);
+        pendingBatches.push(deps);
+        onProgress(visitedModulePaths.size);
+      }
+    }
+  }
+
+  preprocessModule(
+    transformOptions: TransformWorkerOptions,
+    module: TModule,
+    visitedModulePaths: Set<string>,
+  ): Array<TModule> {
+    const cached = module.readCached(transformOptions);
+    if (cached.result == null) {
+      module.readFresh(transformOptions).catch(error => {
+        /* ignore errors, they'll be handled later if the dependency is actually
+         * not obsolete, and required from somewhere */
+      });
+    }
+    const dependencies = cached.result != null
+      ? cached.result.dependencies : cached.outdatedDependencies;
+    return this.tryResolveModuleDependencies(module, dependencies, visitedModulePaths);
+  }
+
+  tryResolveModuleDependencies(
+    module: TModule,
+    dependencyNames: $ReadOnlyArray<string>,
+    visitedModulePaths: Set<string>,
+  ): Array<TModule> {
+    const result = [];
+    for (let i = 0; i < dependencyNames.length; ++i) {
+      try {
+        const depModule = this.resolveDependency(module, dependencyNames[i]);
+        if (!visitedModulePaths.has(depModule.path)) {
+          visitedModulePaths.add(depModule.path);
+          result.push(depModule);
+        }
+      } catch (error) {
+        if (!(error instanceof UnableToResolveError)) {
+          throw error;
+        }
+      }
+    }
+    return result;
+  }
+
   _resolveHasteDependency(fromModule: TModule, toModuleName: string): TModule {
     toModuleName = normalizePath(toModuleName);
 
@@ -285,10 +336,10 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
       realModuleName = toModuleName;
     }
 
-    const modulePath = this._moduleMap
-      .getModule(realModuleName, this._platform, /* supportsNativePlatform */ true);
+    const modulePath = this._options.moduleMap
+      .getModule(realModuleName, this._options.platform, /* supportsNativePlatform */ true);
     if (modulePath != null) {
-      const module = this._moduleCache.getModule(modulePath);
+      const module = this._options.moduleCache.getModule(modulePath);
       /* temporary until we strengthen the typing */
       invariant(module.type === 'Module', 'expected Module type');
       return module;
@@ -297,8 +348,8 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
     let packageName = realModuleName;
     let packagePath;
     while (packageName && packageName !== '.') {
-      packagePath = this._moduleMap
-        .getPackage(packageName, this._platform, /* supportsNativePlatform */ true);
+      packagePath = this._options.moduleMap
+        .getPackage(packageName, this._options.platform, /* supportsNativePlatform */ true);
       if (packagePath != null) {
         break;
       }
@@ -307,7 +358,7 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
 
     if (packagePath != null) {
 
-      const package_ = this._moduleCache.getPackage(packagePath);
+      const package_ = this._options.moduleCache.getPackage(packagePath);
       /* temporary until we strengthen the typing */
       invariant(package_.type === 'Package', 'expected Package type');
 
@@ -390,19 +441,19 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
          currDir !== '.' && currDir !== realPath.parse(fromModule.path).root;
          currDir = path.dirname(currDir)) {
       const searchPath = path.join(currDir, 'node_modules');
-      if (this._dirExists(searchPath)) {
+      if (this._options.dirExists(searchPath)) {
         searchQueue.push(
           path.join(searchPath, realModuleName)
         );
       }
     }
 
-    if (this._extraNodeModules) {
-      const {_extraNodeModules} = this;
+    if (this._options.extraNodeModules) {
+      const {extraNodeModules} = this._options;
       const bits = toModuleName.split(path.sep);
       const packageName = bits[0];
-      if (_extraNodeModules[packageName]) {
-        bits[0] = _extraNodeModules[packageName];
+      if (extraNodeModules[packageName]) {
+        bits[0] = extraNodeModules[packageName];
         searchQueue.push(path.join.apply(path, bits));
       }
     }
@@ -447,9 +498,9 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
   }
 
   _loadAsFile(potentialModulePath: string, fromModule: TModule, toModule: string): TModule {
-    if (this._helpers.isAssetFile(potentialModulePath)) {
+    if (this._options.helpers.isAssetFile(potentialModulePath)) {
       const dirname = path.dirname(potentialModulePath);
-      if (!this._dirExists(dirname)) {
+      if (!this._options.dirExists(dirname)) {
         throw new UnableToResolveError(
           fromModule,
           toModule,
@@ -457,35 +508,35 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
         );
       }
 
-      const {name, type} = getAssetDataFromName(potentialModulePath, this._platforms);
+      const {name, type} = getAssetDataFromName(potentialModulePath, this._options.platforms);
 
       let pattern = '^' + name + '(@[\\d\\.]+x)?';
-      if (this._platform != null) {
-        pattern += '(\\.' + this._platform + ')?';
+      if (this._options.platform != null) {
+        pattern += '(\\.' + this._options.platform + ')?';
       }
       pattern += '\\.' + type + '$';
 
-      const assetFiles = this._matchFiles(dirname, new RegExp(pattern));
+      const assetFiles = this._options.matchFiles(dirname, new RegExp(pattern));
       // We arbitrarly grab the lowest, because scale selection will happen
       // somewhere else. Always the lowest so that it's stable between builds.
       const assetFile = getArrayLowestItem(assetFiles);
       if (assetFile) {
-        return this._moduleCache.getAssetModule(assetFile);
+        return this._options.moduleCache.getAssetModule(assetFile);
       }
     }
 
     let file;
-    if (this._hasteFS.exists(potentialModulePath)) {
+    if (this._options.hasteFS.exists(potentialModulePath)) {
       file = potentialModulePath;
-    } else if (this._platform != null &&
-               this._hasteFS.exists(potentialModulePath + '.' + this._platform + '.js')) {
-      file = potentialModulePath + '.' + this._platform + '.js';
+    } else if (this._options.platform != null &&
+               this._options.hasteFS.exists(potentialModulePath + '.' + this._options.platform + '.js')) {
+      file = potentialModulePath + '.' + this._options.platform + '.js';
     } else if (this._preferNativePlatform &&
-               this._hasteFS.exists(potentialModulePath + '.native.js')) {
+               this._options.hasteFS.exists(potentialModulePath + '.native.js')) {
       file = potentialModulePath + '.native.js';
-    } else if (this._hasteFS.exists(potentialModulePath + '.js')) {
+    } else if (this._options.hasteFS.exists(potentialModulePath + '.js')) {
       file = potentialModulePath + '.js';
-    } else if (this._hasteFS.exists(potentialModulePath + '.json')) {
+    } else if (this._options.hasteFS.exists(potentialModulePath + '.json')) {
       file = potentialModulePath + '.json';
     } else {
       throw new UnableToResolveError(
@@ -495,11 +546,11 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
       );
     }
 
-    return this._moduleCache.getModule(file);
+    return this._options.moduleCache.getModule(file);
   }
 
   _loadAsDir(potentialDirPath: string, fromModule: TModule, toModule: string): TModule {
-    if (!this._dirExists(potentialDirPath)) {
+    if (!this._options.dirExists(potentialDirPath)) {
       throw new UnableToResolveError(
         fromModule,
         toModule,
@@ -508,8 +559,8 @@ class ResolutionRequest<TModule: Moduleish, TPackage: Packageish> {
     }
 
     const packageJsonPath = path.join(potentialDirPath, 'package.json');
-    if (this._hasteFS.exists(packageJsonPath)) {
-      const main = this._moduleCache.getPackage(packageJsonPath).getMain();
+    if (this._options.hasteFS.exists(packageJsonPath)) {
+      const main = this._options.moduleCache.getPackage(packageJsonPath).getMain();
       return tryResolveSync(
         () => this._loadAsFile(main, fromModule, toModule),
         () => this._loadAsDir(main, fromModule, toModule),

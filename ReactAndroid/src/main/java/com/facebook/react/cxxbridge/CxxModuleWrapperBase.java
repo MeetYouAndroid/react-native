@@ -2,8 +2,6 @@
 
 package com.facebook.react.cxxbridge;
 
-import java.util.Map;
-
 import com.facebook.jni.HybridData;
 import com.facebook.proguard.annotations.DoNotStrip;
 import com.facebook.react.bridge.NativeModule;
@@ -29,22 +27,12 @@ public class CxxModuleWrapperBase implements NativeModule
   public native String getName();
 
   @Override
-  public Map<String, NativeMethod> getMethods() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public void initialize() {
     // do nothing
   }
 
   @Override
   public boolean canOverrideExistingModule() {
-    return false;
-  }
-
-  @Override
-  public boolean supportsWebWorkers() {
     return false;
   }
 
@@ -56,5 +44,13 @@ public class CxxModuleWrapperBase implements NativeModule
   // For creating a wrapper from C++, or from a derived class.
   protected CxxModuleWrapperBase(HybridData hd) {
     mHybridData = hd;
+  }
+
+  // Replace the current native module held by this wrapper by a new instance
+  protected void resetModule(HybridData hd) {
+    if (hd != mHybridData) {
+      mHybridData.resetNative();
+      mHybridData = hd;
+    }
   }
 }
