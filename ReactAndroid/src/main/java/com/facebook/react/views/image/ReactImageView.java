@@ -71,7 +71,7 @@ public class ReactImageView extends GenericDraweeView {
 
   public static final int REMOTE_IMAGE_FADE_DURATION_MS = 300;
 
-  private static float[] sComputedCornerRadii = new float[4];
+
 
   /*
    * Implementation note re rounded corners:
@@ -84,66 +84,8 @@ public class ReactImageView extends GenericDraweeView {
    * Because the postprocessor uses a modified bitmap, that would just get cropped in
    * 'cover' mode, so we fall back to Fresco's normal implementation.
    */
-  private static final Matrix sMatrix = new Matrix();
-  private static final Matrix sInverse = new Matrix();
+
   private ImageResizeMethod mResizeMethod = ImageResizeMethod.AUTO;
-
-  private class RoundedCornerPostprocessor extends BasePostprocessor {
-
-    void getRadii(Bitmap source, float[] computedCornerRadii, float[] mappedRadii) {
-      mScaleType.getTransform(
-            sMatrix,
-            new Rect(0, 0, source.getWidth(), source.getHeight()),
-            source.getWidth(),
-            source.getHeight(),
-            0.0f,
-            0.0f);
-        sMatrix.invert(sInverse);
-
-        mappedRadii[0] = sInverse.mapRadius(computedCornerRadii[0]);
-        mappedRadii[1] = mappedRadii[0];
-
-        mappedRadii[2] = sInverse.mapRadius(computedCornerRadii[1]);
-        mappedRadii[3] = mappedRadii[2];
-
-        mappedRadii[4] = sInverse.mapRadius(computedCornerRadii[2]);
-        mappedRadii[5] = mappedRadii[4];
-
-        mappedRadii[6] = sInverse.mapRadius(computedCornerRadii[3]);
-        mappedRadii[7] = mappedRadii[6];
-    }
-
-    @Override
-    public void process(Bitmap output, Bitmap source) {
-      cornerRadii(sComputedCornerRadii);
-
-      output.setHasAlpha(true);
-      if (FloatUtil.floatsEqual(sComputedCornerRadii[0], 0f) &&
-          FloatUtil.floatsEqual(sComputedCornerRadii[1], 0f) &&
-          FloatUtil.floatsEqual(sComputedCornerRadii[2], 0f) &&
-          FloatUtil.floatsEqual(sComputedCornerRadii[3], 0f)) {
-        super.process(output, source);
-        return;
-      }
-      Paint paint = new Paint();
-      paint.setAntiAlias(true);
-      paint.setShader(new BitmapShader(source, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
-      Canvas canvas = new Canvas(output);
-
-      float[] radii = new float[8];
-
-      getRadii(source, sComputedCornerRadii, radii);
-
-      Path pathForBorderRadius = new Path();
-
-      pathForBorderRadius.addRoundRect(
-          new RectF(0, 0, source.getWidth(), source.getHeight()),
-          radii,
-          Path.Direction.CW);
-
-      canvas.drawPath(pathForBorderRadius, paint);
-    }
-  }
 
   private final List<ImageSource> mSources;
 
@@ -245,6 +187,7 @@ public class ReactImageView extends GenericDraweeView {
     if (!FloatUtil.floatsEqual(mBorderRadius, borderRadius)) {
       mBorderRadius = borderRadius;
       mIsDirty = true;
+      mRoundedCornerPostprocessor.setBorderRadius(borderRadius);
     }
   }
 
@@ -258,11 +201,14 @@ public class ReactImageView extends GenericDraweeView {
       mBorderCornerRadii[position] = borderRadius;
       mIsDirty = true;
     }
+
+    mRoundedCornerPostprocessor.setBorderCornerRadii(mBorderCornerRadii);
   }
 
   public void setScaleType(ScalingUtils.ScaleType scaleType) {
     mScaleType = scaleType;
     mIsDirty = true;
+    mRoundedCornerPostprocessor.setScaleType(scaleType);
   }
 
   public void setResizeMethod(ImageResizeMethod resizeMethod) {
@@ -317,15 +263,6 @@ public class ReactImageView extends GenericDraweeView {
     mFadeDurationMs = durationMs;
     // no worth marking as dirty if it already rendered..
   }
-
-  private void cornerRadii(float[] computedCorners) {
-    float defaultBorderRadius = !YogaConstants.isUndefined(mBorderRadius) ? mBorderRadius : 0;
-
-    computedCorners[0] = mBorderCornerRadii != null && !YogaConstants.isUndefined(mBorderCornerRadii[0]) ? mBorderCornerRadii[0] : defaultBorderRadius;
-    computedCorners[1] = mBorderCornerRadii != null && !YogaConstants.isUndefined(mBorderCornerRadii[1]) ? mBorderCornerRadii[1] : defaultBorderRadius;
-    computedCorners[2] = mBorderCornerRadii != null && !YogaConstants.isUndefined(mBorderCornerRadii[2]) ? mBorderCornerRadii[2] : defaultBorderRadius;
-    computedCorners[3] = mBorderCornerRadii != null && !YogaConstants.isUndefined(mBorderCornerRadii[3]) ? mBorderCornerRadii[3] : defaultBorderRadius;
-  }
   
   public void setHeaders(ReadableMap headers) {
     mHeaders = headers;
@@ -368,9 +305,9 @@ public class ReactImageView extends GenericDraweeView {
     if (usePostprocessorScaling) {
       roundingParams.setCornersRadius(0);
     } else {
-      cornerRadii(sComputedCornerRadii);
+      float[] radiis = mRoundedCornerPostprocessor.getComputedCornerRadii();
 
-      roundingParams.setCornersRadii(sComputedCornerRadii[0], sComputedCornerRadii[1], sComputedCornerRadii[2], sComputedCornerRadii[3]);
+      roundingParams.setCornersRadii(radiis[0], radiis[1], radiis[2], radiis[3]);
     }
 
     roundingParams.setBorder(mBorderColor, mBorderWidth);
