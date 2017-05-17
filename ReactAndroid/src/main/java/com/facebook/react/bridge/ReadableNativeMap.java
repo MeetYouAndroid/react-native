@@ -71,6 +71,16 @@ public class ReadableNativeMap extends NativeMap implements ReadableMap {
           hashMap.put(key, getBoolean(key));
           break;
         case Number:
+          Double d = getDouble(key);
+          String s = d.toString();
+          if(s.contains(".")) {
+            String end = s.split("\\.")[1];
+            int end_i = Integer.valueOf(end);
+            if(end_i == 0 ){
+              hashMap.put(key, getInt(key));
+              break;
+            }
+          }
           hashMap.put(key, getDouble(key));
           break;
         case String:
