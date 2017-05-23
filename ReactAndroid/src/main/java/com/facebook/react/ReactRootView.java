@@ -203,10 +203,14 @@ public class ReactRootView extends SizeMonitoringFrameLayout implements RootView
     // TODO(6788889): Use POJO instead of bundle here, apparently we can't just use WritableMap
     // here as it may be deallocated in native after passing via JNI bridge, but we want to reuse
     // it in the case of re-creating the catalyst instance
-    Assertions.assertCondition(
-        mReactInstanceManager == null,
-        "This root view has already been attached to a catalyst instance manager");
+//    Assertions.assertCondition(
+//        mReactInstanceManager == null,
+//        "This root view has already been attached to a catalyst instance manager");
 
+    if(mReactInstanceManager != null && mReactInstanceManager.hasStartedCreatingInitialContext()){
+      mReactInstanceManager.recreateReactContextInBackground();
+      return;
+    }
     mReactInstanceManager = reactInstanceManager;
     mJSModuleName = moduleName;
     mLaunchOptions = launchOptions;
