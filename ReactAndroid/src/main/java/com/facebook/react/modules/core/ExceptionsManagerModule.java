@@ -86,25 +86,28 @@ public class ExceptionsManagerModule extends BaseJavaModule {
 
   @ReactMethod
   public void reportSoftException(String title, ReadableArray details, int exceptionId) {
-    if (mDevSupportManager.getDevSupportEnabled()) {
-      mDevSupportManager.showNewJSError(title, details, exceptionId);
-    } else {
-      FLog.e(ReactConstants.TAG, stackTraceToString(title, details));
-    }
+//    if (mDevSupportManager.getDevSupportEnabled()) {
+//
+//    } else {
+//      FLog.e(ReactConstants.TAG, stackTraceToString(title, details));
+//    }
+    mDevSupportManager.showNewJSError(title, details, exceptionId);
   }
 
   private void showOrThrowError(String title, ReadableArray details, int exceptionId) {
-    if (mDevSupportManager.getDevSupportEnabled()) {
-      mDevSupportManager.showNewJSError(title, details, exceptionId);
-      CrashReport.postCatchedException(new JavascriptException(stackTraceToString(title, details)));
-    }
+//    if (mDevSupportManager.getDevSupportEnabled()) {
+//
+//    }
+
+    mDevSupportManager.showNewJSError(title, details, exceptionId);
   }
 
   @ReactMethod
   public void updateExceptionMessage(String title, ReadableArray details, int exceptionId) {
-    if (mDevSupportManager.getDevSupportEnabled()) {
-      mDevSupportManager.updateJSError(title, details, exceptionId);
-    }
+//    if (mDevSupportManager.getDevSupportEnabled()) {
+//
+//    }
+    mDevSupportManager.updateJSError(title, details, exceptionId);
   }
 
   @ReactMethod

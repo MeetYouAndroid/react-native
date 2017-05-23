@@ -16,11 +16,13 @@ import java.io.File;
 import com.facebook.react.bridge.DefaultNativeModuleCallExceptionHandler;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
+import com.facebook.react.common.JavascriptException;
 import com.facebook.react.devsupport.interfaces.DevOptionHandler;
 import com.facebook.react.devsupport.interfaces.DevSupportManager;
 import com.facebook.react.devsupport.interfaces.PackagerStatusCallback;
 import com.facebook.react.devsupport.interfaces.StackFrame;
 import com.facebook.react.modules.debug.interfaces.DeveloperSettings;
+import com.tencent.bugly.crashreport.CrashReport;
 
 /**
  * A dummy implementation of {@link DevSupportManager} to be used in production mode where
@@ -36,7 +38,7 @@ public class DisabledDevSupportManager implements DevSupportManager {
 
   @Override
   public void showNewJavaError(String message, Throwable e) {
-
+    handleException(new Exception(message));
   }
 
   @Override
@@ -46,12 +48,12 @@ public class DisabledDevSupportManager implements DevSupportManager {
 
   @Override
   public void showNewJSError(String message, ReadableArray details, int errorCookie) {
-
+    handleException(new Exception(message));
   }
 
   @Override
   public void updateJSError(String message, ReadableArray details, int errorCookie) {
-
+    handleException(new Exception(message));
   }
 
   @Override
@@ -158,6 +160,8 @@ public class DisabledDevSupportManager implements DevSupportManager {
 
   @Override
   public void handleException(Exception e) {
+    CrashReport.postCatchedException(e);
+
     mDefaultNativeModuleCallExceptionHandler.handleException(e);
   }
 }
