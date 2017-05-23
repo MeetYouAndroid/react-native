@@ -327,6 +327,9 @@ public class ReactTextInputManager extends BaseViewManager<ReactEditText, Layout
       cursorDrawableResField.setAccessible(true);
       int drawableResId = cursorDrawableResField.getInt(view);
 
+      if(drawableResId == 0){
+        return;
+      }
       Drawable drawable = ContextCompat.getDrawable(view.getContext(), drawableResId);
       if (color != null) {
         drawable.setColorFilter(color, PorterDuff.Mode.SRC_IN);
@@ -340,10 +343,10 @@ public class ReactTextInputManager extends BaseViewManager<ReactEditText, Layout
       Field cursorDrawableField = editor.getClass().getDeclaredField("mCursorDrawable");
       cursorDrawableField.setAccessible(true);
       cursorDrawableField.set(editor, drawables);
-    } catch (NoSuchFieldException ex) {
+    } catch (Exception ex) {
       // Ignore errors to avoid crashing if these private fields don't exist on modified
       // or future android versions.
-    } catch (IllegalAccessException ex) {}
+    }
   }
 
   @ReactProp(name = "caretHidden", defaultBoolean = false)
