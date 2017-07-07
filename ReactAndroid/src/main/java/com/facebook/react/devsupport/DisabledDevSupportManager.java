@@ -162,6 +162,6 @@ public class DisabledDevSupportManager implements DevSupportManager {
   public void handleException(Exception e) {
     CrashReport.postCatchedException(e);
 
-    mDefaultNativeModuleCallExceptionHandler.handleException(e);
+//    mDefaultNativeModuleCallExceptionHandler.handleException(e);
   }
 }
