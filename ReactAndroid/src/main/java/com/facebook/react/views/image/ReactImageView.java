@@ -342,6 +342,7 @@ public class ReactImageView extends GenericDraweeView {
         .setAutoPlayAnimations(true)
         .setCallerContext(mCallerContext)
         .setOldController(getController())
+        .setAutoPlayAnimations(true)
         .setImageRequest(imageRequest);
 
     if (mCachedImageSource != null) {
