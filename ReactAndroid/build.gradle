@@ -22,12 +22,12 @@ def thirdPartyNdkDir = new File("$buildDir/third-party-ndk")
 //   - folly-deprecate-dynamic-initializer
 //   - glog-0.3.3
 //   - jsc-headers
-def dependenciesPath = System.getenv("REACT_NATIVE_DEPENDENCIES")
+def dependenciesPath = property('REACT_NATIVE_DEPENDENCIES')//System.getenv("REACT_NATIVE_DEPENDENCIES")
 
 // The Boost library is a very large download (>100MB).
 // If Boost is already present on your system, define the REACT_NATIVE_BOOST_PATH env variable
 // and the build will use that.
-def boostPath = dependenciesPath ?: System.getenv("REACT_NATIVE_BOOST_PATH")
+def boostPath = dependenciesPath ?: property('REACT_NATIVE_BOOST_PATH')//System.getenv("REACT_NATIVE_BOOST_PATH")
 
 task createNativeDepsDirectories {
     downloadsDir.mkdirs()
