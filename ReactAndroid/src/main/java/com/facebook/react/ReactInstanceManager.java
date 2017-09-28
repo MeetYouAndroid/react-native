@@ -126,6 +126,7 @@ public class ReactInstanceManager {
   private final @Nullable JSBundleLoader mBundleLoader; /* path to JS bundle on file system */
   private final @Nullable String mJSMainModuleName; /* path to JS bundle root on packager server */
   private final List<ReactPackage> mPackages;
+  private final @Nullable String mJSSource;
   private final DevSupportManager mDevSupportManager;
   private final boolean mUseDeveloperSupport;
   private final @Nullable NotThreadSafeBridgeIdleDebugListener mBridgeIdleDebugListener;
@@ -298,6 +299,7 @@ public class ReactInstanceManager {
     @Nullable Activity currentActivity,
     @Nullable DefaultHardwareBackBtnHandler defaultHardwareBackBtnHandler,
     @Nullable JSBundleLoader bundleLoader,
+    @Nullable String jsSource,
     @Nullable String jsMainModuleName,
     List<ReactPackage> packages,
     boolean useDeveloperSupport,
@@ -321,11 +323,13 @@ public class ReactInstanceManager {
     mDefaultBackButtonImpl = defaultHardwareBackBtnHandler;
     mBundleLoader = bundleLoader;
     mJSMainModuleName = jsMainModuleName;
+    mJSSource = jsSource;
     mPackages = packages;
     mUseDeveloperSupport = useDeveloperSupport;
     mDevSupportManager = DevSupportManagerFactory.create(
         applicationContext,
         mDevInterface,
+        mJSSource,
         mJSMainModuleName,
         useDeveloperSupport,
         redBoxHandler);

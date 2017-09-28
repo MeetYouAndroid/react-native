@@ -28,6 +28,7 @@ public class ReactInstanceManagerBuilder {
   protected final List<ReactPackage> mPackages = new ArrayList<>();
 
   protected @Nullable String mJSBundleAssetUrl;
+  protected @Nullable String mJSBundleSource;
   protected @Nullable JSBundleLoader mJSBundleLoader;
   protected @Nullable String mJSMainModuleName;
   protected @Nullable NotThreadSafeBridgeIdleDebugListener mBridgeIdleDebugListener;
@@ -78,6 +79,11 @@ public class ReactInstanceManagerBuilder {
       return this;
     }
     return setJSBundleLoader(JSBundleLoader.createFileLoader(jsBundleFile));
+  }
+
+  public ReactInstanceManagerBuilder setJSSource(String source){
+    mJSBundleSource = source;
+    return this;
   }
 
   /**
@@ -220,6 +226,7 @@ public class ReactInstanceManagerBuilder {
       mDefaultHardwareBackBtnHandler,
       (mJSBundleLoader == null && mJSBundleAssetUrl != null) ?
         JSBundleLoader.createAssetLoader(mApplication, mJSBundleAssetUrl) : mJSBundleLoader,
+      mJSBundleSource,
       mJSMainModuleName,
       mPackages,
       mUseDeveloperSupport,

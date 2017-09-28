@@ -37,6 +37,7 @@ public class DevSupportManagerFactory {
     return create(
       applicationContext,
       reactInstanceCommandsHandler,
+      null,
       packagerPathForJSBundleName,
       enableOnCreate,
       null);
@@ -45,11 +46,12 @@ public class DevSupportManagerFactory {
   public static DevSupportManager create(
     Context applicationContext,
     ReactInstanceDevCommandsHandler reactInstanceCommandsHandler,
+    @Nullable String source,
     @Nullable String packagerPathForJSBundleName,
     boolean enableOnCreate,
     @Nullable RedBoxHandler redBoxHandler) {
     if (!enableOnCreate) {
-      return new DisabledDevSupportManager();
+      return new DisabledDevSupportManager(source, packagerPathForJSBundleName);
     }
     try {
       // ProGuard is surprisingly smart in this case and will keep a class if it detects a call to

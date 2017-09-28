@@ -30,15 +30,19 @@ import com.tencent.bugly.crashreport.CrashReport;
  */
 public class DisabledDevSupportManager implements DevSupportManager {
 
-  private final DefaultNativeModuleCallExceptionHandler mDefaultNativeModuleCallExceptionHandler;
+//  private final DefaultNativeModuleCallExceptionHandler mDefaultNativeModuleCallExceptionHandler;
 
-  public DisabledDevSupportManager() {
-    mDefaultNativeModuleCallExceptionHandler = new DefaultNativeModuleCallExceptionHandler();
+  private final String mSource;
+  private final String mModule;
+  public DisabledDevSupportManager(String source, String module) {
+    mSource = source;
+    mModule = module;
+//    mDefaultNativeModuleCallExceptionHandler = new DefaultNativeModuleCallExceptionHandler();
   }
 
   @Override
   public void showNewJavaError(String message, Throwable e) {
-    handleException(new Exception(message));
+    handleException(new Exception("Version:MeetyouReact-043;" + "Source:" + mSource + ";Module:"+mModule + ";" + message));
   }
 
   @Override
@@ -48,12 +52,14 @@ public class DisabledDevSupportManager implements DevSupportManager {
 
   @Override
   public void showNewJSError(String message, ReadableArray details, int errorCookie) {
-    handleException(new Exception(message));
+    handleException(new Exception("Version:MeetyouReact-043;" + "Source:" + mSource + ";Module:"+mModule + ";" + message));
+
   }
 
   @Override
   public void updateJSError(String message, ReadableArray details, int errorCookie) {
-    handleException(new Exception(message));
+    handleException(new Exception("Version:MeetyouReact-043;" + "Source:" + mSource + ";Module:"+mModule + ";" + message));
+
   }
 
   @Override
