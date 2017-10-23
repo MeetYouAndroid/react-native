@@ -74,19 +74,19 @@ public class ReadableNativeMap extends NativeMap implements ReadableMap {
         case Number:
           Double d = getDouble(key);
           BigDecimal bigDecimal = new BigDecimal(d.toString());
-//          try {
-//            String s = bigDecimal.toString();
-//            if (s.contains(".")) {
-//              String end = s.split("\\.")[1];
-//              int end_i = Integer.valueOf(end);
-//              if (end_i == 0) {
-//                hashMap.put(key, getInt(key));
-//                break;
-//              }
-//            }
-//          }catch (Exception e){
-//            e.printStackTrace();
-//          }
+          try {
+            String s = bigDecimal.toString();
+            if (s.contains(".")) {
+              String end = s.split("\\.")[1];
+              int end_i = Integer.valueOf(end);
+              if (end_i == 0) {
+                hashMap.put(key, getInt(key));
+                break;
+              }
+            }
+          }catch (Exception e){
+            e.printStackTrace();
+          }
           hashMap.put(key, bigDecimal);
           break;
         case String:
