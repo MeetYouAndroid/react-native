@@ -13,6 +13,7 @@ import javax.annotation.Nullable;
 
 import android.view.View;
 
+import com.facebook.react.MeetyouReactBridge;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.Dynamic;
@@ -52,25 +53,45 @@ public class ReactStylesDiffMap {
   }
 
   public boolean getBoolean(String name, boolean restoreNullToDefaultValue) {
-    return mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getBoolean(name);
+    boolean orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getBoolean(name);
+    if (MeetyouReactBridge.getBridge().getListener() != null) {
+      return MeetyouReactBridge.getBridge().getListener().getBoolean(name, orgin);
+    }
+    return orgin;
   }
 
   public double getDouble(String name, double restoreNullToDefaultValue) {
-    return mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getDouble(name);
+    double orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getDouble(name);
+    if (MeetyouReactBridge.getBridge().getListener() != null) {
+      return MeetyouReactBridge.getBridge().getListener().getDouble(name, orgin);
+    }
+    return orgin;
   }
 
   public float getFloat(String name, float restoreNullToDefaultValue) {
-    return mBackingMap.isNull(name) ?
+    float orgin = mBackingMap.isNull(name) ?
         restoreNullToDefaultValue : (float) mBackingMap.getDouble(name);
+    if (MeetyouReactBridge.getBridge().getListener() != null) {
+      return MeetyouReactBridge.getBridge().getListener().getFloat(name, orgin);
+    }
+    return orgin;
   }
 
   public int getInt(String name, int restoreNullToDefaultValue) {
-    return mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getInt(name);
+    int orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getInt(name);
+    if (MeetyouReactBridge.getBridge().getListener() != null) {
+      return MeetyouReactBridge.getBridge().getListener().getInt(name, orgin);
+    }
+    return orgin;
   }
 
   @Nullable
   public String getString(String name) {
-    return mBackingMap.getString(name);
+    String orginString = mBackingMap.getString(name);
+    if (MeetyouReactBridge.getBridge().getListener() != null) {
+      return MeetyouReactBridge.getBridge().getListener().getString(name, orginString);
+    }
+    return orginString;
   }
 
   @Nullable
