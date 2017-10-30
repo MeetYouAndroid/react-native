@@ -69,10 +69,10 @@ public class ReactStylesDiffMap {
   }
 
   public boolean getBoolean(String name, boolean restoreNullToDefaultValue) {
-    if(mBackingMap == null){
-      return restoreNullToDefaultValue;
+    boolean orgin = restoreNullToDefaultValue;
+    if(mBackingMap != null){
+      orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getBoolean(name);
     }
-    boolean orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getBoolean(name);
     if (MeetyouReactBridge.getBridge().getListener() != null) {
       return MeetyouReactBridge.getBridge().getListener().getBoolean(name, orgin);
     }
@@ -80,10 +80,10 @@ public class ReactStylesDiffMap {
   }
 
   public double getDouble(String name, double restoreNullToDefaultValue) {
-    if(mBackingMap == null){
-      return restoreNullToDefaultValue;
+    double orgin = restoreNullToDefaultValue;
+    if(mBackingMap != null){
+      orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getDouble(name);
     }
-    double orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getDouble(name);
     if (MeetyouReactBridge.getBridge().getListener() != null) {
       return MeetyouReactBridge.getBridge().getListener().getDouble(name, orgin);
     }
@@ -91,11 +91,10 @@ public class ReactStylesDiffMap {
   }
 
   public float getFloat(String name, float restoreNullToDefaultValue) {
-    if(mBackingMap == null){
-      return restoreNullToDefaultValue;
+    float orgin = restoreNullToDefaultValue;
+    if(mBackingMap != null){
+      orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : (float)mBackingMap.getDouble(name);
     }
-    float orgin = mBackingMap.isNull(name) ?
-        restoreNullToDefaultValue : (float) mBackingMap.getDouble(name);
     if (MeetyouReactBridge.getBridge().getListener() != null) {
       return MeetyouReactBridge.getBridge().getListener().getFloat(name, orgin);
     }
@@ -103,10 +102,14 @@ public class ReactStylesDiffMap {
   }
 
   public int getInt(String name, int restoreNullToDefaultValue) {
-    if(mHashMap != null){
-      return mHashMap.containsKey(name) ? (int)mHashMap.get(name) : restoreNullToDefaultValue;
+
+    int orgin = restoreNullToDefaultValue;
+    if(mBackingMap != null){
+      orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getInt(name);
     }
-    int orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getInt(name);
+    if(mHashMap != null){
+      orgin = mHashMap.containsKey(name) ? (int)mHashMap.get(name) : restoreNullToDefaultValue;
+    }
     if (MeetyouReactBridge.getBridge().getListener() != null) {
       return MeetyouReactBridge.getBridge().getListener().getInt(name, orgin);
     }
@@ -115,14 +118,14 @@ public class ReactStylesDiffMap {
 
   @Nullable
   public String getString(String name) {
-    if(mBackingMap == null){
-      return null;
+    String orgin = null;
+    if(mBackingMap != null){
+      orgin = mBackingMap.getString(name);
     }
-    String orginString = mBackingMap.getString(name);
     if (MeetyouReactBridge.getBridge().getListener() != null) {
-      return MeetyouReactBridge.getBridge().getListener().getString(name, orginString);
+      return MeetyouReactBridge.getBridge().getListener().getString(name, orgin);
     }
-    return orginString;
+    return orgin;
   }
 
   @Nullable
