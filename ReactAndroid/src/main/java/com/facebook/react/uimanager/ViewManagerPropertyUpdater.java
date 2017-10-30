@@ -3,7 +3,9 @@
 package com.facebook.react.uimanager;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import android.view.View;
 
@@ -35,21 +37,42 @@ public class ViewManagerPropertyUpdater {
       V v,
       ReactStylesDiffMap props) {
     ViewManagerSetter<T, V> setter = findManagerSetter(manager.getClass());
-    ReadableMap propMap = props.mBackingMap;
-    ReadableMapKeySetIterator iterator = propMap.keySetIterator();
-    while (iterator.hasNextKey()) {
-      String key = iterator.nextKey();
-      setter.setProperty(manager, v, key, props);
+    if(props.mBackingMap != null){
+      ReadableMap propMap = props.mBackingMap;
+      ReadableMapKeySetIterator iterator = propMap.keySetIterator();
+      while (iterator.hasNextKey()) {
+        String key = iterator.nextKey();
+        setter.setProperty(manager, v, key, props);
+      }
+    }else{
+      HashMap<String,Object> propMap = props.mHashMap;
+      Iterator iterator = propMap.entrySet().iterator();
+      while (iterator.hasNext()) {
+        Map.Entry entry = (Map.Entry) iterator.next();
+        String key = (String)entry.getKey();
+        setter.setProperty(manager, v, key, props);
+      }
     }
+
   }
 
   public static <T extends ReactShadowNode> void updateProps(T node, ReactStylesDiffMap props) {
     ShadowNodeSetter<T> setter = findNodeSetter(node.getClass());
-    ReadableMap propMap = props.mBackingMap;
-    ReadableMapKeySetIterator iterator = propMap.keySetIterator();
-    while (iterator.hasNextKey()) {
-      String key = iterator.nextKey();
-      setter.setProperty(node, key, props);
+    if(props.mBackingMap != null) {
+      ReadableMap propMap = props.mBackingMap;
+      ReadableMapKeySetIterator iterator = propMap.keySetIterator();
+      while (iterator.hasNextKey()) {
+        String key = iterator.nextKey();
+        setter.setProperty(node, key, props);
+      }
+    }else{
+      HashMap<String,Object> propMap = props.mHashMap;
+      Iterator iterator = propMap.entrySet().iterator();
+      while (iterator.hasNext()) {
+        Map.Entry entry = (Map.Entry) iterator.next();
+        String key = (String)entry.getKey();
+        setter.setProperty(node, key, props);
+      }
     }
   }
 

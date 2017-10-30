@@ -10,6 +10,7 @@
 package com.facebook.react.uimanager;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 
 import com.facebook.react.bridge.ReadableMap;
@@ -165,6 +166,17 @@ public class ViewProps {
       return true;
     } else if (POINTER_EVENTS.equals(prop)) {
       String value = map.getString(prop);
+      return "auto".equals(value) || "box-none".equals(value);
+    } else {
+      return false;
+    }
+  }
+
+  public static boolean isLayoutOnly(HashMap<String,Object> map, String prop) {
+    if (LAYOUT_ONLY_PROPS.contains(prop)) {
+      return true;
+    } else if (POINTER_EVENTS.equals(prop)) {
+      String value = (String)map.get(prop);
       return "auto".equals(value) || "box-none".equals(value);
     } else {
       return false;

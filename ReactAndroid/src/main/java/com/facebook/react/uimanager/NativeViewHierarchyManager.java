@@ -29,6 +29,7 @@ import com.facebook.react.bridge.JSApplicationIllegalArgumentException;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.react.bridge.SoftAssertions;
 import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.touch.JSResponderHandler;
@@ -36,6 +37,8 @@ import com.facebook.react.uimanager.layoutanimation.LayoutAnimationController;
 import com.facebook.react.uimanager.layoutanimation.LayoutAnimationListener;
 import com.facebook.systrace.Systrace;
 import com.facebook.systrace.SystraceMessage;
+
+import java.util.HashMap;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -70,6 +73,7 @@ public class NativeViewHierarchyManager {
   private final AnimationRegistry mAnimationRegistry;
   private final SparseArray<View> mTagsToViews;
   private final SparseArray<ViewManager> mTagsToViewManagers;
+  private final SparseArray<HashMap<String, Object>> mTagsToProp;
   private final SparseBooleanArray mRootTags;
   private final ViewManagerRegistry mViewManagers;
   private final JSResponderHandler mJSResponderHandler = new JSResponderHandler();
@@ -88,6 +92,7 @@ public class NativeViewHierarchyManager {
     mTagsToViews = new SparseArray<>();
     mTagsToViewManagers = new SparseArray<>();
     mRootTags = new SparseBooleanArray();
+    mTagsToProp = new SparseArray<>();
     mRootViewManager = manager;
   }
 
@@ -116,12 +121,47 @@ public class NativeViewHierarchyManager {
     mLayoutAnimationEnabled = enabled;
   }
 
+  public void resetProperties(){
+    UiThreadUtil.assertOnUiThread();
+    try{
+      for(int i = 0 ;i < mTagsToViewManagers.size() ; i ++){
+        int tag = mTagsToViewManagers.keyAt(i);
+        ViewManager viewManager = resolveViewManager(tag);
+        View viewToUpdate = resolveView(tag);
+        HashMap<String, Object> map = mTagsToProp.get(tag);
+        ReactStylesDiffMap diffMap = new ReactStylesDiffMap(map);
+        viewManager.updateProperties(viewToUpdate, diffMap);
+      }
+    }catch (Exception e){
+      e.printStackTrace();
+    }
+  }
+
   public void updateProperties(int tag, ReactStylesDiffMap props) {
     UiThreadUtil.assertOnUiThread();
 
     try {
       ViewManager viewManager = resolveViewManager(tag);
       View viewToUpdate = resolveView(tag);
+      if(props != null && props.mBackingMap != null){
+        try {
+          ReadableMapKeySetIterator iterator = props.mBackingMap.keySetIterator();
+          HashMap<String, Object> map = mTagsToProp.get(tag);
+          if(map != null){
+            while (iterator.hasNextKey()) {
+              String key = iterator.nextKey();
+              if (key.contains("color") || key.contains("Color")) {
+                //颜色
+                map.put(key, props.mBackingMap.getInt(key));
+              }
+            }
+            mTagsToProp.put(tag, map);
+          }
+
+        }catch (Exception e){
+          e.printStackTrace();
+        }
+      }
       viewManager.updateProperties(viewToUpdate, props);
     } catch (IllegalViewOperationException e) {
       Log.e(TAG, "Unable to update properties for view tag " + tag, e);
@@ -224,6 +264,20 @@ public class NativeViewHierarchyManager {
       // creating another (potentially much more expensive) mapping from view to React tag
       view.setId(tag);
       if (initialProps != null) {
+        try {
+          ReadableMapKeySetIterator iterator = initialProps.mBackingMap.keySetIterator();
+          HashMap<String, Object> map = new HashMap<>();
+          while (iterator.hasNextKey()) {
+            String key = iterator.nextKey();
+            if (key.contains("color") || key.contains("Color")) {
+              //颜色
+              map.put(key, initialProps.mBackingMap.getInt(key));
+            }
+          }
+          mTagsToProp.put(tag, map);
+        }catch (Exception e){
+          e.printStackTrace();
+        }
         viewManager.updateProperties(view, initialProps);
       }
     } finally {

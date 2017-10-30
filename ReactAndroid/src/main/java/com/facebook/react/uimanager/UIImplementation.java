@@ -8,12 +8,16 @@
  */
 package com.facebook.react.uimanager;
 
+import android.util.SparseArray;
+
 import javax.annotation.Nullable;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import com.facebook.common.logging.FLog;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.yoga.YogaDirection;
 import com.facebook.infer.annotation.Assertions;
 import com.facebook.react.animation.Animation;
@@ -38,6 +42,7 @@ import com.facebook.systrace.SystraceMessage;
 public class UIImplementation {
 
   private final ShadowNodeRegistry mShadowNodeRegistry = new ShadowNodeRegistry();
+  private final SparseArray<HashMap<String, Object>> mTagsToProp = new SparseArray<>();
   private final ViewManagerRegistry mViewManagers;
   private final UIViewOperationQueue mOperationsQueue;
   private final NativeViewHierarchyOptimizer mNativeViewHierarchyOptimizer;
@@ -178,6 +183,28 @@ public class UIImplementation {
     return mLayoutTimer;
   }
 
+  public void resetView(){
+    try {
+      SparseArray<ReactShadowNode> nodes = mShadowNodeRegistry.getTags();
+      for (int i = 0; i < nodes.size(); i++) {
+        int key = nodes.keyAt(i);
+        ReactShadowNode cssNode = nodes.get(key);
+        if (cssNode == null) {
+          throw new IllegalViewOperationException("Trying to update non-existent view with tag " + key);
+        }
+        HashMap<String,Object> map = mTagsToProp.get(cssNode.getReactTag());
+        if (map != null) {
+          ReactStylesDiffMap styles = new ReactStylesDiffMap(map);
+          cssNode.updateProperties(styles);
+          String className = cssNode.getViewClass();
+          handleUpdateView(cssNode, className, styles);
+        }
+      }
+    }catch (Exception e){
+      e.printStackTrace();
+    }
+  }
+
   /**
    * Invoked by React to create a new node with a given tag, class name and properties.
    */
@@ -193,6 +220,22 @@ public class UIImplementation {
 
     ReactStylesDiffMap styles = null;
     if (props != null) {
+      try {
+        ReadableMapKeySetIterator iterator = props.keySetIterator();
+        HashMap<String, Object> map = new HashMap<>();
+        if (map != null) {
+          while (iterator.hasNextKey()) {
+            String key = iterator.nextKey();
+            if (key.contains("color") || key.contains("Color")) {
+              //颜色
+              map.put(key, props.getInt(key));
+            }
+          }
+          mTagsToProp.put(tag, map);
+        }
+      }catch (Exception e){
+        e.printStackTrace();
+      }
       styles = new ReactStylesDiffMap(props);
       cssNode.updateProperties(styles);
     }
@@ -223,6 +266,23 @@ public class UIImplementation {
     }
 
     if (props != null) {
+      try {
+        ReadableMapKeySetIterator iterator = props.keySetIterator();
+        HashMap<String, Object> map = mTagsToProp.get(tag);
+        if (map != null) {
+          while (iterator.hasNextKey()) {
+            String key = iterator.nextKey();
+            if (key.contains("color") || key.contains("Color")) {
+              //颜色
+              map.put(key, props.getInt(key));
+            }
+          }
+          mTagsToProp.put(tag, map);
+        }
+      }catch (Exception e){
+        e.printStackTrace();
+      }
+      //更新UI
       ReactStylesDiffMap styles = new ReactStylesDiffMap(props);
       cssNode.updateProperties(styles);
       handleUpdateView(cssNode, className, styles);
@@ -249,15 +309,15 @@ public class UIImplementation {
     }
   }
 
-  /**
-   * Invoked when there is a mutation in a node tree.
-   *
-   * @param tag react tag of the node we want to manage
-   * @param indicesToRemove ordered (asc) list of indicies at which view should be removed
-   * @param viewsToAdd ordered (asc based on mIndex property) list of tag-index pairs that represent
-   * a view which should be added at the specified index
-   * @param tagsToDelete list of tags corresponding to views that should be removed
-   */
+//  /**
+//   * Invoked when there is a mutation in a node tree.
+//   *
+//   * @param tag react tag of the node we want to manage
+//   * @param indicesToRemove ordered (asc) list of indicies at which view should be removed
+//   * @param viewsToAdd ordered (asc based on mIndex property) list of tag-index pairs that represent
+//   * a view which should be added at the specified index
+//   * @param tagsToDelete list of tags corresponding to views that should be removed
+//   */
   public void manageChildren(
       int viewTag,
       @Nullable ReadableArray moveFrom,

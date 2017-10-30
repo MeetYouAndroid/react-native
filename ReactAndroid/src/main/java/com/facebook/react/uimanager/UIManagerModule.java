@@ -249,6 +249,10 @@ public class UIManagerModule extends ReactContextBaseJavaModule implements
     mUIImplementation.updateNodeSize(nodeViewTag, newWidth, newHeight);
   }
 
+  public void resetView(){
+    mUIImplementation.resetView();
+  }
+
   @ReactMethod
   public void createView(int tag, String className, int rootViewTag, ReadableMap props) {
     if (DEBUG) {

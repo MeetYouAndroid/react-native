@@ -18,6 +18,8 @@ import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.Dynamic;
 
+import java.util.HashMap;
+
 /**
  * Wrapper for {@link ReadableMap} which should be used for styles property map. It extends
  * some of the accessor methods of {@link ReadableMap} by adding a default value property
@@ -40,19 +42,36 @@ public class ReactStylesDiffMap {
 
   /* package */ final ReadableMap mBackingMap;
 
+  final HashMap<String, Object> mHashMap;
+
+  public ReactStylesDiffMap(HashMap<String, Object> map) {
+    mBackingMap = null;
+    mHashMap = map;
+  }
+
   public ReactStylesDiffMap(ReadableMap props) {
     mBackingMap = props;
+    mHashMap = null;
   }
 
   public boolean hasKey(String name) {
+    if(mHashMap != null){
+      return mHashMap.containsKey(name);
+    }
     return mBackingMap.hasKey(name);
   }
 
   public boolean isNull(String name) {
+    if(mHashMap != null){
+      return !mHashMap.containsKey(name);
+    }
     return mBackingMap.isNull(name);
   }
 
   public boolean getBoolean(String name, boolean restoreNullToDefaultValue) {
+    if(mBackingMap == null){
+      return restoreNullToDefaultValue;
+    }
     boolean orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getBoolean(name);
     if (MeetyouReactBridge.getBridge().getListener() != null) {
       return MeetyouReactBridge.getBridge().getListener().getBoolean(name, orgin);
@@ -61,6 +80,9 @@ public class ReactStylesDiffMap {
   }
 
   public double getDouble(String name, double restoreNullToDefaultValue) {
+    if(mBackingMap == null){
+      return restoreNullToDefaultValue;
+    }
     double orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getDouble(name);
     if (MeetyouReactBridge.getBridge().getListener() != null) {
       return MeetyouReactBridge.getBridge().getListener().getDouble(name, orgin);
@@ -69,6 +91,9 @@ public class ReactStylesDiffMap {
   }
 
   public float getFloat(String name, float restoreNullToDefaultValue) {
+    if(mBackingMap == null){
+      return restoreNullToDefaultValue;
+    }
     float orgin = mBackingMap.isNull(name) ?
         restoreNullToDefaultValue : (float) mBackingMap.getDouble(name);
     if (MeetyouReactBridge.getBridge().getListener() != null) {
@@ -78,6 +103,9 @@ public class ReactStylesDiffMap {
   }
 
   public int getInt(String name, int restoreNullToDefaultValue) {
+    if(mHashMap != null){
+      return mHashMap.containsKey(name) ? (int)mHashMap.get(name) : restoreNullToDefaultValue;
+    }
     int orgin = mBackingMap.isNull(name) ? restoreNullToDefaultValue : mBackingMap.getInt(name);
     if (MeetyouReactBridge.getBridge().getListener() != null) {
       return MeetyouReactBridge.getBridge().getListener().getInt(name, orgin);
@@ -87,6 +115,9 @@ public class ReactStylesDiffMap {
 
   @Nullable
   public String getString(String name) {
+    if(mBackingMap == null){
+      return null;
+    }
     String orginString = mBackingMap.getString(name);
     if (MeetyouReactBridge.getBridge().getListener() != null) {
       return MeetyouReactBridge.getBridge().getListener().getString(name, orginString);
@@ -96,21 +127,33 @@ public class ReactStylesDiffMap {
 
   @Nullable
   public ReadableArray getArray(String key) {
+    if(mBackingMap == null){
+      return null;
+    }
     return mBackingMap.getArray(key);
   }
 
   @Nullable
   public ReadableMap getMap(String key) {
+    if(mBackingMap == null){
+      return null;
+    }
     return mBackingMap.getMap(key);
   }
 
   @Nullable
   public Dynamic getDynamic(String key) {
+    if(mBackingMap == null){
+      return null;
+    }
     return mBackingMap.getDynamic(key);
   }
 
   @Override
   public String toString() {
+    if(mHashMap != null){
+      return "{ " + getClass().getSimpleName() + ": " + mHashMap.toString() + " }";
+    }
     return "{ " + getClass().getSimpleName() + ": " + mBackingMap.toString() + " }";
   }
 }

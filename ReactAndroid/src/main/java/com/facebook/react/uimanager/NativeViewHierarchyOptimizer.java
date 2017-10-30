@@ -17,6 +17,9 @@ import com.facebook.infer.annotation.Assertions;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
 
+import java.util.Iterator;
+import java.util.Map;
+
 /**
  * Class responsible for optimizing the native view hierarchy while still respecting the final UI
  * product specified by JS. Basically, JS sends us a hierarchy of nodes that, while easy to reason
@@ -73,6 +76,10 @@ public class NativeViewHierarchyOptimizer {
       ShadowNodeRegistry shadowNodeRegistry) {
     mUIViewOperationQueue = uiViewOperationQueue;
     mShadowNodeRegistry = shadowNodeRegistry;
+  }
+
+  public void handleViewReset(){
+    mUIViewOperationQueue.enqueueReset();
   }
 
   /**
@@ -444,10 +451,20 @@ public class NativeViewHierarchyOptimizer {
       return false;
     }
 
-    ReadableMapKeySetIterator keyIterator = props.mBackingMap.keySetIterator();
-    while (keyIterator.hasNextKey()) {
-      if (!ViewProps.isLayoutOnly(props.mBackingMap, keyIterator.nextKey())) {
-        return false;
+    if(props.mBackingMap != null) {
+      ReadableMapKeySetIterator keyIterator = props.mBackingMap.keySetIterator();
+      while (keyIterator.hasNextKey()) {
+        if (!ViewProps.isLayoutOnly(props.mBackingMap, keyIterator.nextKey())) {
+          return false;
+        }
+      }
+    }else{
+      Iterator keyIterator = props.mHashMap.keySet().iterator();
+      while (keyIterator.hasNext()) {
+        Map.Entry entry = (Map.Entry) keyIterator.next();
+        if (!ViewProps.isLayoutOnly(props.mHashMap, (String)entry.getKey())) {
+          return false;
+        }
       }
     }
     return true;

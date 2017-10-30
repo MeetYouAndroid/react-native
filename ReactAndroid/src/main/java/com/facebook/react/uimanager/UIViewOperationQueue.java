@@ -245,6 +245,19 @@ public class UIViewOperationQueue {
     }
   }
 
+  private final class ResetOperation extends ViewOperation {
+
+
+    public ResetOperation() {
+      super(-1);
+    }
+
+    @Override
+    public void execute() {
+      mNativeViewHierarchyManager.resetProperties();
+    }
+  }
+
   private final class DispatchCommandOperation extends ViewOperation {
 
     private final int mCommand;
@@ -651,6 +664,10 @@ public class UIViewOperationQueue {
           viewClassName,
           initialProps));
     }
+  }
+
+  public void enqueueReset(){
+    mOperations.add(new ResetOperation());
   }
 
   public void enqueueUpdateProperties(int reactTag, String className, ReactStylesDiffMap props) {
