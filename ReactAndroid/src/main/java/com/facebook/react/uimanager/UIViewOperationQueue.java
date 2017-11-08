@@ -548,6 +548,8 @@ public class UIViewOperationQueue {
   private final ArrayList<Runnable> mDispatchUIRunnables = new ArrayList<>();
 
   private ArrayList<UIOperation> mOperations = new ArrayList<>();
+  private ArrayList<UIOperation> mResetOperations = new ArrayList<>();
+
   @GuardedBy("mNonBatchedOperationsLock")
   private ArrayDeque<UIOperation> mNonBatchedOperations = new ArrayDeque<>();
   private @Nullable NotThreadSafeViewHierarchyUpdateDebugListener mViewHierarchyUpdateDebugListener;
@@ -641,6 +643,18 @@ public class UIViewOperationQueue {
 
   public void enqueueUpdateExtraData(int reactTag, Object extraData) {
     mOperations.add(new UpdateViewExtraData(reactTag, extraData));
+    mResetOperations.add(new UpdateViewExtraData(reactTag, extraData));
+  }
+
+  public void excuteUpdate(){
+    for(UIOperation uiOperation :mResetOperations){
+      try {
+        uiOperation.execute();
+      }catch (Exception e){
+        e.printStackTrace();
+      }
+    }
+    mResetOperations.clear();
   }
 
   public void enqueueShowPopupMenu(
@@ -777,6 +791,7 @@ public class UIViewOperationQueue {
         nonBatchedOperations = null;
       }
     }
+    mResetOperations.clear();
 
     if (mViewHierarchyUpdateDebugListener != null) {
       mViewHierarchyUpdateDebugListener.onViewHierarchyUpdateEnqueued();

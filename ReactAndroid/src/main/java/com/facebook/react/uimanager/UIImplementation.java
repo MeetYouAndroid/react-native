@@ -17,8 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import com.facebook.common.logging.FLog;
-import com.facebook.react.bridge.ReadableMapKeySetIterator;
-import com.facebook.yoga.YogaDirection;
 import com.facebook.infer.annotation.Assertions;
 import com.facebook.react.animation.Animation;
 import com.facebook.react.bridge.Arguments;
@@ -26,6 +24,7 @@ import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.react.bridge.UiThreadUtil;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.common.ReactConstants;
@@ -34,6 +33,7 @@ import com.facebook.react.uimanager.debug.NotThreadSafeViewHierarchyUpdateDebugL
 import com.facebook.react.uimanager.events.EventDispatcher;
 import com.facebook.systrace.Systrace;
 import com.facebook.systrace.SystraceMessage;
+import com.facebook.yoga.YogaDirection;
 
 /**
  * An class that is used to receive React commands from JS and translate them into a
@@ -42,9 +42,9 @@ import com.facebook.systrace.SystraceMessage;
 public class UIImplementation {
 
   private final ShadowNodeRegistry mShadowNodeRegistry = new ShadowNodeRegistry();
-  private final SparseArray<HashMap<String, Object>> mTagsToProp = new SparseArray<>();
   private final ViewManagerRegistry mViewManagers;
   private final UIViewOperationQueue mOperationsQueue;
+  private final SparseArray<HashMap<String, Object>> mTagsToProp = new SparseArray<>();
   private final NativeViewHierarchyOptimizer mNativeViewHierarchyOptimizer;
   private final int[] mMeasureBuffer = new int[4];
   private final ReactApplicationContext mReactContext;
@@ -65,23 +65,23 @@ public class UIImplementation {
     ViewManagerRegistry viewManagers,
     EventDispatcher eventDispatcher) {
     this(
-        reactContext,
-        viewManagers,
-        new UIViewOperationQueue(reactContext, new NativeViewHierarchyManager(viewManagers)),
-        eventDispatcher);
+      reactContext,
+      viewManagers,
+      new UIViewOperationQueue(reactContext, new NativeViewHierarchyManager(viewManagers)),
+      eventDispatcher);
   }
 
   protected UIImplementation(
-      ReactApplicationContext reactContext,
-      ViewManagerRegistry viewManagers,
-      UIViewOperationQueue operationsQueue,
-      EventDispatcher eventDispatcher) {
+    ReactApplicationContext reactContext,
+    ViewManagerRegistry viewManagers,
+    UIViewOperationQueue operationsQueue,
+    EventDispatcher eventDispatcher) {
     mReactContext = reactContext;
     mViewManagers = viewManagers;
     mOperationsQueue = operationsQueue;
     mNativeViewHierarchyOptimizer = new NativeViewHierarchyOptimizer(
-        mOperationsQueue,
-        mShadowNodeRegistry);
+      mOperationsQueue,
+      mShadowNodeRegistry);
     mEventDispatcher = eventDispatcher;
   }
 
@@ -98,6 +98,37 @@ public class UIImplementation {
   protected ReactShadowNode createShadowNode(String className) {
     ViewManager viewManager = mViewManagers.get(className);
     return viewManager.createShadowNodeInstance();
+  }
+
+  public void resetView(){
+    try {
+      SparseArray<ReactShadowNode> nodes = mShadowNodeRegistry.getTags();
+      for (int i = 0; i < nodes.size(); i++) {
+        try {
+          int key = nodes.keyAt(i);
+//        ReactShadowNode cssNode = nodes.valueAt(i);
+          ReactShadowNode cssNode = nodes.get(key);
+          if (cssNode == null) {
+            throw new IllegalViewOperationException("Trying to update non-existent view with tag " + i);
+          }
+          HashMap<String, Object> map = mTagsToProp.get(cssNode.getReactTag());
+          if (map != null) {
+            ReactStylesDiffMap styles = new ReactStylesDiffMap(map);
+            cssNode.updateProperties(styles);
+//          String className = cssNode.getViewClass();
+//          handleUpdateView(cssNode, className, styles);
+            notifyOnBeforeLayoutRecursive(cssNode);
+            cssNode.onCollectExtraUpdates(mOperationsQueue);
+            synchronouslyUpdateViewOnUIThread(cssNode.getReactTag(), styles);
+          }
+        }catch (Exception e){
+//          e.printStackTrace();
+        }
+      }
+      mOperationsQueue.excuteUpdate();
+    }catch (Exception e){
+      e.printStackTrace();
+    }
   }
 
   protected final ReactShadowNode resolveShadowNode(int reactTag) {
@@ -117,11 +148,11 @@ public class UIImplementation {
    * and adds it to a node registry.
    */
   public void registerRootView(
-      SizeMonitoringFrameLayout rootView,
-      int tag,
-      int width,
-      int height,
-      ThemedReactContext context) {
+    SizeMonitoringFrameLayout rootView,
+    int tag,
+    int width,
+    int height,
+    ThemedReactContext context) {
     final ReactShadowNode rootCSSNode = createRootShadowNode();
     rootCSSNode.setReactTag(tag);
     rootCSSNode.setThemedContext(context);
@@ -154,9 +185,9 @@ public class UIImplementation {
    * has its size changed.
    */
   public void updateNodeSize(
-      int nodeViewTag,
-      int newWidth,
-      int newHeight) {
+    int nodeViewTag,
+    int newWidth,
+    int newHeight) {
     ReactShadowNode cssNode = mShadowNodeRegistry.getNode(nodeViewTag);
     if (cssNode == null) {
       FLog.w(
@@ -181,28 +212,6 @@ public class UIImplementation {
 
   public double getLayoutTimer() {
     return mLayoutTimer;
-  }
-
-  public void resetView(){
-    try {
-      SparseArray<ReactShadowNode> nodes = mShadowNodeRegistry.getTags();
-      for (int i = 0; i < nodes.size(); i++) {
-        int key = nodes.keyAt(i);
-        ReactShadowNode cssNode = nodes.get(key);
-        if (cssNode == null) {
-          throw new IllegalViewOperationException("Trying to update non-existent view with tag " + key);
-        }
-        HashMap<String,Object> map = mTagsToProp.get(cssNode.getReactTag());
-        if (map != null) {
-          ReactStylesDiffMap styles = new ReactStylesDiffMap(map);
-          cssNode.updateProperties(styles);
-          String className = cssNode.getViewClass();
-          handleUpdateView(cssNode, className, styles);
-        }
-      }
-    }catch (Exception e){
-      e.printStackTrace();
-    }
   }
 
   /**
@@ -244,9 +253,9 @@ public class UIImplementation {
   }
 
   protected void handleCreateView(
-      ReactShadowNode cssNode,
-      int rootViewTag,
-      @Nullable ReactStylesDiffMap styles) {
+    ReactShadowNode cssNode,
+    int rootViewTag,
+    @Nullable ReactStylesDiffMap styles) {
     if (!cssNode.isVirtual()) {
       mNativeViewHierarchyOptimizer.handleCreateView(cssNode, cssNode.getThemedContext(), styles);
     }
@@ -301,15 +310,15 @@ public class UIImplementation {
   }
 
   protected void handleUpdateView(
-      ReactShadowNode cssNode,
-      String className,
-      ReactStylesDiffMap styles) {
+    ReactShadowNode cssNode,
+    String className,
+    ReactStylesDiffMap styles) {
     if (!cssNode.isVirtual()) {
       mNativeViewHierarchyOptimizer.handleUpdateView(cssNode, className, styles);
     }
   }
 
-//  /**
+  //  /**
 //   * Invoked when there is a mutation in a node tree.
 //   *
 //   * @param tag react tag of the node we want to manage
@@ -319,12 +328,12 @@ public class UIImplementation {
 //   * @param tagsToDelete list of tags corresponding to views that should be removed
 //   */
   public void manageChildren(
-      int viewTag,
-      @Nullable ReadableArray moveFrom,
-      @Nullable ReadableArray moveTo,
-      @Nullable ReadableArray addChildTags,
-      @Nullable ReadableArray addAtIndices,
-      @Nullable ReadableArray removeFrom) {
+    int viewTag,
+    @Nullable ReadableArray moveFrom,
+    @Nullable ReadableArray moveTo,
+    @Nullable ReadableArray addChildTags,
+    @Nullable ReadableArray addAtIndices,
+    @Nullable ReadableArray removeFrom) {
     ReactShadowNode cssNodeToManage = mShadowNodeRegistry.getNode(viewTag);
 
     int numToMove = moveFrom == null ? 0 : moveFrom.size();
@@ -352,8 +361,8 @@ public class UIImplementation {
         int moveFromIndex = moveFrom.getInt(i);
         int tagToMove = cssNodeToManage.getChildAt(moveFromIndex).getReactTag();
         viewsToAdd[i] = new ViewAtIndex(
-            tagToMove,
-            moveTo.getInt(i));
+          tagToMove,
+          moveTo.getInt(i));
         indicesToRemove[i] = moveFromIndex;
         tagsToRemove[i] = tagToMove;
       }
@@ -398,7 +407,7 @@ public class UIImplementation {
       int indexToRemove = indicesToRemove[i];
       if (indexToRemove == lastIndexRemoved) {
         throw new IllegalViewOperationException("Repeated indices in Removal list for view tag: "
-            + viewTag);
+          + viewTag);
       }
       cssNodeToManage.removeChildAt(indicesToRemove[i]);
       lastIndexRemoved = indicesToRemove[i];
@@ -409,18 +418,18 @@ public class UIImplementation {
       ReactShadowNode cssNodeToAdd = mShadowNodeRegistry.getNode(viewAtIndex.mTag);
       if (cssNodeToAdd == null) {
         throw new IllegalViewOperationException("Trying to add unknown view tag: "
-            + viewAtIndex.mTag);
+          + viewAtIndex.mTag);
       }
       cssNodeToManage.addChildAt(cssNodeToAdd, viewAtIndex.mIndex);
     }
 
     if (!cssNodeToManage.isVirtual() && !cssNodeToManage.isVirtualAnchor()) {
       mNativeViewHierarchyOptimizer.handleManageChildren(
-          cssNodeToManage,
-          indicesToRemove,
-          tagsToRemove,
-          viewsToAdd,
-          tagsToDelete);
+        cssNodeToManage,
+        indicesToRemove,
+        tagsToRemove,
+        viewsToAdd,
+        tagsToDelete);
     }
 
     for (int i = 0; i < tagsToDelete.length; i++) {
@@ -502,7 +511,7 @@ public class UIImplementation {
     ReactShadowNode containerNode = mShadowNodeRegistry.getNode(containerTag);
     if (containerNode == null) {
       throw new IllegalViewOperationException(
-          "Trying to remove subviews of an unknown view tag: " + containerTag);
+        "Trying to remove subviews of an unknown view tag: " + containerTag);
     }
 
     WritableArray indicesToRemove = Arguments.createArray();
@@ -557,10 +566,10 @@ public class UIImplementation {
    * the position always will be (0, 0) and method will only measure the view dimensions.
    */
   public void measureLayout(
-      int tag,
-      int ancestorTag,
-      Callback errorCallback,
-      Callback successCallback) {
+    int tag,
+    int ancestorTag,
+    Callback errorCallback,
+    Callback successCallback) {
     try {
       measureLayout(tag, ancestorTag, mMeasureBuffer);
       float relativeX = PixelUtil.toDIPFromPixel(mMeasureBuffer[0]);
@@ -577,9 +586,9 @@ public class UIImplementation {
    * Like {@link #measure} and {@link #measureLayout} but measures relative to the immediate parent.
    */
   public void measureLayoutRelativeToParent(
-      int tag,
-      Callback errorCallback,
-      Callback successCallback) {
+    int tag,
+    Callback errorCallback,
+    Callback successCallback) {
     try {
       measureLayoutRelativeToParent(tag, mMeasureBuffer);
       float relativeX = PixelUtil.toDIPFromPixel(mMeasureBuffer[0]);
@@ -596,19 +605,53 @@ public class UIImplementation {
    * Invoked at the end of the transaction to commit any updates to the node hierarchy.
    */
   public void dispatchViewUpdates(int batchId) {
-    updateViewHierarchy();
-    mNativeViewHierarchyOptimizer.onBatchComplete();
-    mOperationsQueue.dispatchViewUpdates(batchId);
+    SystraceMessage.beginSection(
+      Systrace.TRACE_TAG_REACT_JAVA_BRIDGE,
+      "UIImplementation.dispatchViewUpdates")
+      .arg("batchId", batchId)
+      .flush();
+    try {
+      updateViewHierarchy();
+      mNativeViewHierarchyOptimizer.onBatchComplete();
+      mOperationsQueue.dispatchViewUpdates(batchId);
+    } finally {
+      Systrace.endSection(Systrace.TRACE_TAG_REACT_JAVA_BRIDGE);
+    }
   }
 
   protected void updateViewHierarchy() {
-    for (int i = 0; i < mShadowNodeRegistry.getRootNodeCount(); i++) {
-      int tag = mShadowNodeRegistry.getRootTag(i);
-      ReactShadowNode cssRoot = mShadowNodeRegistry.getNode(tag);
-      notifyOnBeforeLayoutRecursive(cssRoot);
+    Systrace.beginSection(
+      Systrace.TRACE_TAG_REACT_JAVA_BRIDGE,
+      "UIImplementation.updateViewHierarchy");
+    try {
+      for (int i = 0; i < mShadowNodeRegistry.getRootNodeCount(); i++) {
+        int tag = mShadowNodeRegistry.getRootTag(i);
+        ReactShadowNode cssRoot = mShadowNodeRegistry.getNode(tag);
+        SystraceMessage.beginSection(
+          Systrace.TRACE_TAG_REACT_JAVA_BRIDGE,
+          "UIImplementation.notifyOnBeforeLayoutRecursive")
+          .arg("rootTag", cssRoot.getReactTag())
+          .flush();
+        try {
+          notifyOnBeforeLayoutRecursive(cssRoot);
+        } finally {
+          Systrace.endSection(Systrace.TRACE_TAG_REACT_JAVA_BRIDGE);
+        }
 
-      calculateRootLayout(cssRoot);
-      applyUpdatesRecursive(cssRoot, 0f, 0f);
+        calculateRootLayout(cssRoot);
+        SystraceMessage.beginSection(
+          Systrace.TRACE_TAG_REACT_JAVA_BRIDGE,
+          "UIImplementation.applyUpdatesRecursive")
+          .arg("rootTag", cssRoot.getReactTag())
+          .flush();
+        try {
+          applyUpdatesRecursive(cssRoot, 0f, 0f);
+        } finally {
+          Systrace.endSection(Systrace.TRACE_TAG_REACT_JAVA_BRIDGE);
+        }
+      }
+    } finally {
+      Systrace.endSection(Systrace.TRACE_TAG_REACT_JAVA_BRIDGE);
     }
   }
 
@@ -663,9 +706,9 @@ public class UIImplementation {
    * @param error will be called if there was an error processing the animation
    */
   public void configureNextLayoutAnimation(
-      ReadableMap config,
-      Callback success,
-      Callback error) {
+    ReadableMap config,
+    Callback success,
+    Callback error) {
     mOperationsQueue.enqueueConfigureLayoutAnimation(config, success, error);
   }
 
@@ -718,7 +761,7 @@ public class UIImplementation {
   }
 
   public void setViewHierarchyUpdateDebugListener(
-      @Nullable NotThreadSafeViewHierarchyUpdateDebugListener listener) {
+    @Nullable NotThreadSafeViewHierarchyUpdateDebugListener listener) {
     mOperationsQueue.setViewHierarchyUpdateDebugListener(listener);
   }
 
@@ -741,7 +784,7 @@ public class UIImplementation {
     ReactShadowNode ancestor = mShadowNodeRegistry.getNode(ancestorTag);
     if (node == null || ancestor == null) {
       throw new IllegalViewOperationException(
-          "Tag " + (node == null ? tag : ancestorTag) + " does not exist");
+        "Tag " + (node == null ? tag : ancestorTag) + " does not exist");
     }
 
     if (node != ancestor) {
@@ -749,7 +792,7 @@ public class UIImplementation {
       while (currentParent != ancestor) {
         if (currentParent == null) {
           throw new IllegalViewOperationException(
-              "Tag " + ancestorTag + " is not an ancestor of tag " + tag);
+            "Tag " + ancestorTag + " is not an ancestor of tag " + tag);
         }
         currentParent = currentParent.getParent();
       }
@@ -772,9 +815,9 @@ public class UIImplementation {
   }
 
   private void measureLayoutRelativeToVerifiedAncestor(
-      ReactShadowNode node,
-      ReactShadowNode ancestor,
-      int[] outputBuffer) {
+    ReactShadowNode node,
+    ReactShadowNode ancestor,
+    int[] outputBuffer) {
     int offsetX = 0;
     int offsetY = 0;
     if (node != ancestor) {
@@ -800,8 +843,8 @@ public class UIImplementation {
   private void assertViewExists(int reactTag, String operationNameForExceptionMessage) {
     if (mShadowNodeRegistry.getNode(reactTag) == null) {
       throw new IllegalViewOperationException(
-          "Unable to execute operation " + operationNameForExceptionMessage + " on view with " +
-              "tag: " + reactTag + ", since the view does not exists");
+        "Unable to execute operation " + operationNameForExceptionMessage + " on view with " +
+          "tag: " + reactTag + ", since the view does not exists");
     }
   }
 
@@ -812,13 +855,13 @@ public class UIImplementation {
       viewGroupManager = (ViewGroupManager) viewManager;
     } else {
       throw new IllegalViewOperationException("Trying to use view " + node.getViewClass() +
-          " as a parent, but its Manager doesn't extends ViewGroupManager");
+        " as a parent, but its Manager doesn't extends ViewGroupManager");
     }
     if (viewGroupManager != null && viewGroupManager.needsCustomLayoutForChildren()) {
       throw new IllegalViewOperationException(
-          "Trying to measure a view using measureLayout/measureLayoutRelativeToParent relative to" +
-              " an ancestor that requires custom layout for it's children (" + node.getViewClass() +
-              "). Use measure instead.");
+        "Trying to measure a view using measureLayout/measureLayoutRelativeToParent relative to" +
+          " an ancestor that requires custom layout for it's children (" + node.getViewClass() +
+          "). Use measure instead.");
     }
   }
 
@@ -834,8 +877,8 @@ public class UIImplementation {
 
   protected void calculateRootLayout(ReactShadowNode cssRoot) {
     SystraceMessage.beginSection(Systrace.TRACE_TAG_REACT_JAVA_BRIDGE, "cssRoot.calculateLayout")
-        .arg("rootTag", cssRoot.getReactTag())
-        .flush();
+      .arg("rootTag", cssRoot.getReactTag())
+      .flush();
     double startTime = (double) System.nanoTime();
     try {
       cssRoot.calculateLayout();
@@ -847,9 +890,9 @@ public class UIImplementation {
   }
 
   protected void applyUpdatesRecursive(
-      ReactShadowNode cssNode,
-      float absoluteX,
-      float absoluteY) {
+    ReactShadowNode cssNode,
+    float absoluteX,
+    float absoluteY) {
     if (!cssNode.hasUpdates()) {
       return;
     }
@@ -857,31 +900,31 @@ public class UIImplementation {
     if (!cssNode.isVirtualAnchor()) {
       for (int i = 0; i < cssNode.getChildCount(); i++) {
         applyUpdatesRecursive(
-            cssNode.getChildAt(i),
-            absoluteX + cssNode.getLayoutX(),
-            absoluteY + cssNode.getLayoutY());
+          cssNode.getChildAt(i),
+          absoluteX + cssNode.getLayoutX(),
+          absoluteY + cssNode.getLayoutY());
       }
     }
 
     int tag = cssNode.getReactTag();
     if (!mShadowNodeRegistry.isRootNode(tag)) {
       boolean frameDidChange = cssNode.dispatchUpdates(
-          absoluteX,
-          absoluteY,
-          mOperationsQueue,
-          mNativeViewHierarchyOptimizer);
+        absoluteX,
+        absoluteY,
+        mOperationsQueue,
+        mNativeViewHierarchyOptimizer);
 
       // Notify JS about layout event if requested
       // and if the position or dimensions actually changed
       // (consistent with iOS).
       if (frameDidChange && cssNode.shouldNotifyOnLayout()) {
         mEventDispatcher.dispatchEvent(
-            OnLayoutEvent.obtain(
-                tag,
-                cssNode.getScreenX(),
-                cssNode.getScreenY(),
-                cssNode.getScreenWidth(),
-                cssNode.getScreenHeight()));
+          OnLayoutEvent.obtain(
+            tag,
+            cssNode.getScreenX(),
+            cssNode.getScreenY(),
+            cssNode.getScreenWidth(),
+            cssNode.getScreenHeight()));
       }
     }
     cssNode.markUpdateSeen();

@@ -164,7 +164,7 @@ public class NativeViewHierarchyManager {
       }
       viewManager.updateProperties(viewToUpdate, props);
     } catch (IllegalViewOperationException e) {
-      Log.e(TAG, "Unable to update properties for view tag " + tag, e);
+//      Log.e(TAG, "Unable to update properties for view tag " + tag, e);
     }
   }
 

@@ -319,7 +319,7 @@ public class DevSupportManagerImpl implements
           public void run() {
             if (mRedBoxDialog == null) {
               mRedBoxDialog = new RedBoxDialog(mApplicationContext, DevSupportManagerImpl.this, mRedBoxHandler);
-              mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+              mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
             }
             if (mRedBoxDialog.isShowing()) {
               // Sometimes errors cause multiple errors to be thrown in JS in quick succession. Only
@@ -469,7 +469,7 @@ public class DevSupportManagerImpl implements
               }
             })
             .create();
-    mDevOptionsDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+    mDevOptionsDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
     mDevOptionsDialog.show();
   }
 
@@ -804,7 +804,7 @@ public class DevSupportManagerImpl implements
           R.string.catalyst_remotedbg_message :
           R.string.catalyst_jsload_message))
       .create();
-    dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+    dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
     dialog.show();
     return dialog;
   }

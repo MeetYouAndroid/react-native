@@ -33,9 +33,9 @@ public class ViewManagerPropertyUpdater {
   private static final Map<Class<?>, ShadowNodeSetter<?>> SHADOW_NODE_SETTER_MAP = new HashMap<>();
 
   public static <T extends ViewManager, V extends View> void updateProps(
-      T manager,
-      V v,
-      ReactStylesDiffMap props) {
+    T manager,
+    V v,
+    ReactStylesDiffMap props) {
     ViewManagerSetter<T, V> setter = findManagerSetter(manager.getClass());
     if(props.mBackingMap != null){
       ReadableMap propMap = props.mBackingMap;
