@@ -332,7 +332,8 @@ public class ReactInstanceManager {
         mJSSource,
         mJSMainModuleName,
         useDeveloperSupport,
-        redBoxHandler);
+        redBoxHandler,
+        nativeModuleCallExceptionHandler);
     mBridgeIdleDebugListener = bridgeIdleDebugListener;
     mLifecycleState = initialLifecycleState;
     mUIImplementationProvider = uiImplementationProvider;

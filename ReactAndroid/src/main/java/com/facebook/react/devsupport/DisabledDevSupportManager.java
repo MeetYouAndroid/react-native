@@ -14,6 +14,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 
 import com.facebook.react.bridge.DefaultNativeModuleCallExceptionHandler;
+import com.facebook.react.bridge.NativeModuleCallExceptionHandler;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.common.JavascriptException;
@@ -34,9 +35,12 @@ public class DisabledDevSupportManager implements DevSupportManager {
 
   private final String mSource;
   private final String mModule;
-  public DisabledDevSupportManager(String source, String module) {
+  private final NativeModuleCallExceptionHandler moduleCallExceptionHandler;
+  public DisabledDevSupportManager(String source, String module,
+                                   NativeModuleCallExceptionHandler handler) {
     mSource = source;
     mModule = module;
+    moduleCallExceptionHandler = handler;
 //    mDefaultNativeModuleCallExceptionHandler = new DefaultNativeModuleCallExceptionHandler();
   }
 
@@ -167,7 +171,9 @@ public class DisabledDevSupportManager implements DevSupportManager {
   @Override
   public void handleException(Exception e) {
     CrashReport.postCatchedException(e);
-
+    if(moduleCallExceptionHandler != null){
+      moduleCallExceptionHandler.handleException(e);
+    }
 //    mDefaultNativeModuleCallExceptionHandler.handleException(e);
   }
 }

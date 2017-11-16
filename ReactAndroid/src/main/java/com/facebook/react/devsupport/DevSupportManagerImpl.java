@@ -44,6 +44,7 @@ import com.facebook.react.bridge.CatalystInstance;
 import com.facebook.react.bridge.DefaultNativeModuleCallExceptionHandler;
 import com.facebook.react.bridge.Inspector;
 import com.facebook.react.bridge.JavaJSExecutor;
+import com.facebook.react.bridge.NativeModuleCallExceptionHandler;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.UiThreadUtil;
@@ -115,6 +116,7 @@ public class DevSupportManagerImpl implements
   private final @Nullable String mJSAppBundleName;
   private final File mJSBundleTempFile;
   private final DefaultNativeModuleCallExceptionHandler mDefaultNativeModuleCallExceptionHandler;
+  private final NativeModuleCallExceptionHandler moduleCallExceptionHandler;
 
   private @Nullable RedBoxDialog mRedBoxDialog;
   private @Nullable AlertDialog mDevOptionsDialog;
@@ -167,13 +169,15 @@ public class DevSupportManagerImpl implements
     Context applicationContext,
     ReactInstanceDevCommandsHandler reactInstanceCommandsHandler,
     @Nullable String packagerPathForJSBundleName,
-    boolean enableOnCreate) {
+    boolean enableOnCreate,
+    NativeModuleCallExceptionHandler handler) {
 
     this(applicationContext,
       reactInstanceCommandsHandler,
       packagerPathForJSBundleName,
       enableOnCreate,
-      null);
+      null,
+      handler);
   }
 
   public DevSupportManagerImpl(
@@ -181,7 +185,8 @@ public class DevSupportManagerImpl implements
       ReactInstanceDevCommandsHandler reactInstanceCommandsHandler,
       @Nullable String packagerPathForJSBundleName,
       boolean enableOnCreate,
-      @Nullable RedBoxHandler redBoxHandler) {
+      @Nullable RedBoxHandler redBoxHandler,
+      NativeModuleCallExceptionHandler handler) {
 
     mReactInstanceCommandsHandler = reactInstanceCommandsHandler;
     mApplicationContext = applicationContext;
@@ -220,7 +225,7 @@ public class DevSupportManagerImpl implements
     // file. As this should only be the case in dev mode we leave it as it is.
     // TODO(6418010): Fix readers-writers problem in debug reload from HTTP server
     mJSBundleTempFile = new File(applicationContext.getFilesDir(), JS_BUNDLE_FILE_NAME);
-
+    moduleCallExceptionHandler = handler;
     mDefaultNativeModuleCallExceptionHandler = new DefaultNativeModuleCallExceptionHandler();
 
     setDevSupportEnabled(enableOnCreate);
@@ -230,6 +235,9 @@ public class DevSupportManagerImpl implements
 
   @Override
   public void handleException(Exception e) {
+    if(moduleCallExceptionHandler != null){
+      moduleCallExceptionHandler.handleException(e);
+    }
     if (mIsDevSupportEnabled) {
       if (e instanceof JSException) {
         FLog.e(ReactConstants.TAG, "Exception in native call from JS", e);
@@ -313,6 +321,9 @@ public class DevSupportManagerImpl implements
       final StackFrame[] stack,
       final int errorCookie,
       final ErrorType errorType) {
+    if(moduleCallExceptionHandler != null){
+      moduleCallExceptionHandler.handleException(null);
+    }
     UiThreadUtil.runOnUiThread(
         new Runnable() {
           @Override
