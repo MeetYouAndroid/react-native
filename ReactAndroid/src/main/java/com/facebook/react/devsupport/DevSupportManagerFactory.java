@@ -74,13 +74,15 @@ public class DevSupportManagerFactory {
           ReactInstanceDevCommandsHandler.class,
           String.class,
           boolean.class,
-          RedBoxHandler.class);
+          RedBoxHandler.class,
+          NativeModuleCallExceptionHandler.class);
       return (DevSupportManager) constructor.newInstance(
         applicationContext,
         reactInstanceCommandsHandler,
         packagerPathForJSBundleName,
         true,
-        redBoxHandler);
+        redBoxHandler,
+        handler);
     } catch (Exception e) {
       throw new RuntimeException(
         "Requested enabled DevSupportManager, but DevSupportManagerImpl class was not found" +

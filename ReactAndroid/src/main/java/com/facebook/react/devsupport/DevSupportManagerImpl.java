@@ -34,6 +34,7 @@ import android.content.pm.PackageManager;
 import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -330,7 +331,16 @@ public class DevSupportManagerImpl implements
           public void run() {
             if (mRedBoxDialog == null) {
               mRedBoxDialog = new RedBoxDialog(mApplicationContext, DevSupportManagerImpl.this, mRedBoxHandler);
-              mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
+              if (Build.VERSION.SDK_INT >= 24) {
+                mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_PHONE);
+
+//      params.type = WindowManager.LayoutParams.TYPE_PHONE;
+              } else {
+                mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
+
+//      params.type = WindowManager.LayoutParams.TYPE_TOAST;
+              }
+//              mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
             }
             if (mRedBoxDialog.isShowing()) {
               // Sometimes errors cause multiple errors to be thrown in JS in quick succession. Only
@@ -480,7 +490,16 @@ public class DevSupportManagerImpl implements
               }
             })
             .create();
-    mDevOptionsDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
+    if (Build.VERSION.SDK_INT >= 24) {
+      mDevOptionsDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_PHONE);
+
+//      params.type = WindowManager.LayoutParams.TYPE_PHONE;
+    } else {
+      mDevOptionsDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
+
+//      params.type = WindowManager.LayoutParams.TYPE_TOAST;
+    }
+//    mDevOptionsDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
     mDevOptionsDialog.show();
   }
 
