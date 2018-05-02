@@ -277,34 +277,42 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.0.1'
 
     provided "com.parse.bolts:bolts-tasks:1.4.0"
-    provided "com.meiyou.fresco:fresco-animated-base:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-animated-base-support:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-animated-gif:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-animated-webp:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-drawee:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-drawee-pipeline:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-fbcore:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-imagepipeline:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-imagepipeline-okhttp3:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-imagepipeline-base:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-webpsupport:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-frescopainter:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.fresco:fresco-fdrawee-span:${FRESCO_PAINTER_VERSION}"
-    provided "com.meiyou.okhttp:okhttp:${OKHTTP_VERSION}"
+//    provided "com.meiyou.fresco:fresco-animated-base:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-animated-base-support:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-animated-gif:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-animated-webp:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-drawee:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-drawee-pipeline:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-fbcore:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-imagepipeline:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-imagepipeline-okhttp3:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-imagepipeline-base:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-webpsupport:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-frescopainter:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.fresco:fresco-fdrawee-span:${FRESCO_PAINTER_VERSION}"
+//    provided "com.meiyou.okhttp:okhttp:${OKHTTP_VERSION}"
     //bugly
-    provided 'com.tencent.bugly:crashreport:2.5.0'//其中<version>替换为当前最新bugly版本号1.2.3.8
-
-    provided 'com.tencent.bugly:nativecrashreport:3.1.2'//3.1.2无法下载，先改为3.1.0
-    provided 'com.alibaba:fastjson:1.1.55.android'
+//    provided 'com.tencent.bugly:crashreport:2.5.0'//其中<version>替换为当前最新bugly版本号1.2.3.8
+//
+//    provided 'com.tencent.bugly:nativecrashreport:3.1.2'//3.1.2无法下载，先改为3.1.0
+//    provided 'com.alibaba:fastjson:1.1.55.android'
 
     compile 'com.facebook.fbui.textlayoutbuilder:textlayoutbuilder:1.0.0'
     compile 'com.facebook.soloader:soloader:0.1.0'
-    compile 'com.google.code.findbugs:jsr305:3.0.0'
+    compile 'com.tencent.bugly:crashreport:2.5.0'//其中<version>替换为当前最新bugly版本号1.2.3.8
+
+    compile 'com.tencent.bugly:nativecrashreport:3.1.2'//3.1.2无法下载，先改为3.1.0
+
+//    compile 'com.google.code.findbugs:jsr305:3.0.0'
 //    compile 'com.squareup.okhttp3:okhttp:3.4.1'
-    compile "com.meiyou.okhttp:okhttp-urlconnection:${OKHTTP_VERSION}"
-    compile "com.meiyou.okhttp:okhttp-ws:${OKHTTP_VERSION}"
-    compile 'com.squareup.okio:okio:1.9.0'
+//    compile "com.meiyou.okhttp:okhttp-urlconnection:${OKHTTP_VERSION}"
+//    compile "com.meiyou.okhttp:okhttp-ws:${OKHTTP_VERSION}"
+//    compile 'com.squareup.okio:okio:1.9.0'
     compile 'org.webkit:android-jsc:r174650'
+    compile ("com.meiyou.ui:ui:jingqi-6.4-78-SNAPSHOT"){
+        exclude group: 'com.meiyou.hybrids',module:'react-native-support'
+        exclude group: 'com.meetyou.android.react', module:'react-native'
+    }
 
     testCompile "junit:junit:${JUNIT_VERSION}"
     testCompile "org.powermock:powermock-api-mockito:${POWERMOCK_VERSION}"
