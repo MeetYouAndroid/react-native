@@ -671,7 +671,7 @@ public class DevSupportManagerImpl implements
     }
 
     if (mDevSettings.isRemoteJSDebugEnabled()) {
-      reloadJSInProxyMode(showProgressDialog());
+      reloadJSInProxyMode();
     } else {
       String bundleURL =
         mDevServerHelper.getDevServerBundleURL(Assertions.assertNotNull(mJSAppBundleName));
@@ -778,7 +778,7 @@ public class DevSupportManagerImpl implements
     mLastErrorType = errorType;
   }
 
-  private void reloadJSInProxyMode(final AlertDialog progressDialog) {
+  private void reloadJSInProxyMode() {
     // When using js proxy, there is no need to fetch JS bundle as proxy executor will do that
     // anyway
     mDevServerHelper.launchJSDevtools();
@@ -790,7 +790,7 @@ public class DevSupportManagerImpl implements
         SimpleSettableFuture<Boolean> future = new SimpleSettableFuture<>();
         executor.connect(
             mDevServerHelper.getWebsocketProxyURL(),
-            getExecutorConnectCallback(progressDialog, future));
+            getExecutorConnectCallback(null, future));
         // TODO(t9349129) Don't use timeout
         try {
           future.get(90, TimeUnit.SECONDS);
@@ -812,12 +812,12 @@ public class DevSupportManagerImpl implements
       @Override
       public void onSuccess() {
         future.set(true);
-        progressDialog.dismiss();
+        //progressDialog.dismiss();
       }
 
       @Override
       public void onFailure(final Throwable cause) {
-        progressDialog.dismiss();
+        //progressDialog.dismiss();
         FLog.e(ReactConstants.TAG, "Unable to connect to remote debugger", cause);
         future.setException(
             new IOException(
@@ -826,7 +826,8 @@ public class DevSupportManagerImpl implements
     };
   }
 
-  private AlertDialog showProgressDialog() {
+ /* private AlertDialog showProgressDialog() {
+
     AlertDialog dialog = new AlertDialog.Builder(mApplicationContext)
       .setTitle(R.string.catalyst_jsload_title)
       .setMessage(mApplicationContext.getString(
@@ -837,16 +838,16 @@ public class DevSupportManagerImpl implements
     dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
     dialog.show();
     return dialog;
-  }
+  }*/
 
   public void reloadJSFromServer(final String bundleURL) {
-    final AlertDialog progressDialog = showProgressDialog();
+    //final AlertDialog progressDialog = showProgressDialog();
 
     mDevServerHelper.downloadBundleFromURL(
         new DevServerHelper.BundleDownloadCallback() {
           @Override
           public void onSuccess() {
-            progressDialog.dismiss();
+            //progressDialog.dismiss();
             UiThreadUtil.runOnUiThread(
                 new Runnable() {
                   @Override
@@ -858,7 +859,7 @@ public class DevSupportManagerImpl implements
 
           @Override
           public void onFailure(final Exception cause) {
-            progressDialog.dismiss();
+            //progressDialog.dismiss();
             FLog.e(ReactConstants.TAG, "Unable to download JS bundle", cause);
             UiThreadUtil.runOnUiThread(
                 new Runnable() {
@@ -878,13 +879,13 @@ public class DevSupportManagerImpl implements
         },
         mJSBundleTempFile,
         bundleURL);
-    progressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+    /*progressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
       @Override
       public void onCancel(DialogInterface dialog) {
         mDevServerHelper.cancelDownloadBundleFromURL();
       }
     });
-    progressDialog.setCancelable(true);
+    progressDialog.setCancelable(true);*/
   }
 
   private void reload() {
