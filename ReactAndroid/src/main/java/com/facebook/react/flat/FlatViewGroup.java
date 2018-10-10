@@ -706,7 +706,7 @@ import com.facebook.react.uimanager.ReactClippingViewGroup;
       super.drawChild(canvas, child, getDrawingTime());
     } else {
       // Make sure non-React Views clip properly.
-      canvas.save(Canvas.CLIP_SAVE_FLAG);
+      canvas.save();
       child.getHitRect(VIEW_BOUNDS);
       canvas.clipRect(VIEW_BOUNDS);
       super.drawChild(canvas, child, getDrawingTime());

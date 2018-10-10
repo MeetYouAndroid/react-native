@@ -331,16 +331,15 @@ public class DevSupportManagerImpl implements
           public void run() {
             if (mRedBoxDialog == null) {
               mRedBoxDialog = new RedBoxDialog(mApplicationContext, DevSupportManagerImpl.this, mRedBoxHandler);
-              if (Build.VERSION.SDK_INT >= 24) {
-                mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_PHONE);
 
-//      params.type = WindowManager.LayoutParams.TYPE_PHONE;
+              if (Build.VERSION.SDK_INT >= 26) {//8.0新特性
+                mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
+              } else if (Build.VERSION.SDK_INT >= 24) {
+                mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_PHONE);
               } else {
                 mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_TOAST);
 
-//      params.type = WindowManager.LayoutParams.TYPE_TOAST;
               }
-//              mRedBoxDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
             }
             if (mRedBoxDialog.isShowing()) {
               // Sometimes errors cause multiple errors to be thrown in JS in quick succession. Only

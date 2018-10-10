@@ -94,7 +94,7 @@ import android.graphics.Typeface;
   public void draw(FlatViewGroup parent, Canvas canvas) {
     onPreDraw(parent, canvas);
     if (mNeedsClipping && shouldClip()) {
-      canvas.save(Canvas.CLIP_SAVE_FLAG);
+      canvas.save();
       applyClipping(canvas);
       onDraw(canvas);
       canvas.restore();
